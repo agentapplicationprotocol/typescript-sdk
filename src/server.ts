@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import type { SSEStreamingApi } from "hono/streaming";
 import {
@@ -40,6 +41,8 @@ export async function writeSSEEvents(
 export interface ServerOptions {
   /** Called on every request (except GET /meta) to authenticate. Return false to reject. */
   authenticate?: (apiKey: string) => boolean | Promise<boolean>;
+  /** CORS origin(s) to allow. Disabled by default. */
+  cors?: string | string[];
 }
 
 export class Server {
@@ -48,6 +51,10 @@ export class Server {
   constructor(handler: ServerHandler, options: ServerOptions = {}) {
     this.app = new Hono();
     const { authenticate } = options;
+
+    if (options.cors !== undefined) {
+      this.app.use("*", cors({ origin: options.cors }));
+    }
 
     const auth = async (apiKey: string): Promise<boolean> => {
       if (!authenticate) return true;

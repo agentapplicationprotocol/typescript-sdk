@@ -63,6 +63,6 @@ const handler: ServerHandler = {
   async deleteSession() {},
 };
 
-const server = new Server(handler, { authenticate: (k) => k === "example-key" });
+const server = new Server(handler, { authenticate: (k) => k === "example-key", cors: "*" });
 serve({ fetch: server.fetch, port: 3001 });
 console.log("Streaming server running on http://localhost:3001");

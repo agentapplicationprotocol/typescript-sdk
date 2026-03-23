@@ -75,6 +75,6 @@ const handler: ServerHandler = {
   async deleteSession() {},
 };
 
-const server = new Server(handler, { authenticate: (k) => k === "example-key" });
+const server = new Server(handler, { authenticate: (k) => k === "example-key", cors: "*" });
 serve({ fetch: server.fetch, port: 3004 });
 console.log("Server-tool (inline) server running on http://localhost:3004");

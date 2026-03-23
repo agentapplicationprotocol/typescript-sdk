@@ -104,6 +104,7 @@ const handler: ServerHandler = {
 
 const server = new Server(handler, {
   authenticate: (apiKey) => apiKey === "example-key",
+  cors: "*",
 });
 
 const PORT = 3000;
