@@ -1,0 +1,36 @@
+{
+  "name": "@agentapplicationprotocol/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Agent Application Protocol (AAP)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "example:basic:server": "tsx src/examples/01-basic/server.ts",
+    "example:basic:client": "tsx src/examples/01-basic/client.ts",
+    "example:streaming:server": "tsx src/examples/02-streaming/server.ts",
+    "example:streaming:client": "tsx src/examples/02-streaming/client.ts",
+    "example:client-tool:server": "tsx src/examples/03-client-tool/server.ts",
+    "example:client-tool:client": "tsx src/examples/03-client-tool/client.ts",
+    "example:server-tool-permission:server": "tsx src/examples/04-server-tool-permission/server.ts",
+    "example:server-tool-permission:client": "tsx src/examples/04-server-tool-permission/client.ts",
+    "example:server-tool-inline:server": "tsx src/examples/05-server-tool-inline/server.ts",
+    "example:server-tool-inline:client": "tsx src/examples/05-server-tool-inline/client.ts"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@hono/node-server": "^1.19.11",
+    "@types/json-schema": "^7.0.15",
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "eventsource-parser": "^3.0.6",
+    "hono": "^4.12.8"
+  }
+}
