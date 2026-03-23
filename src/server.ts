@@ -43,6 +43,8 @@ export interface ServerOptions {
   authenticate?: (apiKey: string) => boolean | Promise<boolean>;
   /** CORS origin(s) to allow. Disabled by default. */
   cors?: string | string[];
+  /** Base path to mount all routes under, e.g. "/api/v1". */
+  base?: string;
 }
 
 export class Server {
@@ -51,9 +53,10 @@ export class Server {
   constructor(handler: ServerHandler, options: ServerOptions = {}) {
     this.app = new Hono();
     const { authenticate } = options;
+    const router = options.base ? this.app.basePath(options.base) : this.app;
 
     if (options.cors !== undefined) {
-      this.app.use("*", cors({ origin: options.cors }));
+      router.use("*", cors({ origin: options.cors }));
     }
 
     const auth = async (apiKey: string): Promise<boolean> => {
@@ -65,20 +68,20 @@ export class Server {
       authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
     // GET /meta — auth optional
-    this.app.get("/meta", async (c) => {
+    router.get("/meta", async (c) => {
       const meta = await handler.getMeta();
       return c.json(meta);
     });
 
     // Auth middleware for all other routes
-    this.app.use("*", async (c, next) => {
+    router.use("*", async (c, next) => {
       const apiKey = getApiKey(c.req.header("Authorization"));
       if (!(await auth(apiKey))) return c.json({ error: "Unauthorized" }, 401);
       return next();
     });
 
     // PUT /session
-    this.app.put("/session", async (c) => {
+    router.put("/session", async (c) => {
       const req = await c.req.json<CreateSessionRequest>();
       const result = await handler.createSession(req);
       if (isAsyncIterable(result)) {
@@ -88,7 +91,7 @@ export class Server {
     });
 
     // POST /session/:id
-    this.app.post("/session/:id", async (c) => {
+    router.post("/session/:id", async (c) => {
       const req = await c.req.json<SessionTurnRequest>();
       const result = await handler.sendTurn(c.req.param("id"), req);
       if (isAsyncIterable(result)) {
@@ -98,13 +101,13 @@ export class Server {
     });
 
     // GET /session/:id
-    this.app.get("/session/:id", async (c) => {
+    router.get("/session/:id", async (c) => {
       const session = await handler.getSession(c.req.param("id"));
       return c.json(session);
     });
 
     // GET /sessions
-    this.app.get("/sessions", async (c) => {
+    router.get("/sessions", async (c) => {
       const limit = c.req.query("limit");
       const after = c.req.query("after");
       const result = await handler.listSessions({
@@ -115,7 +118,7 @@ export class Server {
     });
 
     // DELETE /session/:id
-    this.app.delete("/session/:id", async (c) => {
+    router.delete("/session/:id", async (c) => {
       await handler.deleteSession(c.req.param("id"));
       return new Response(null, { status: 204 });
     });
