@@ -51,10 +51,18 @@ export interface AgentInfo {
   description: string;
   tools: ToolSpec[];
   options: AgentOption[];
-  capabilities: {
-    history: {
+  capabilities?: {
+    history?: {
       compacted: boolean;
       full: boolean;
+    };
+    stream?: {
+      chunk: boolean;
+      message: boolean;
+      none: boolean;
+    };
+    application?: {
+      tools: boolean;
     };
   };
 }
