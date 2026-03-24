@@ -53,16 +53,16 @@ export interface AgentInfo {
   options: AgentOption[];
   capabilities?: {
     history?: {
-      compacted: boolean;
-      full: boolean;
+      compacted?: boolean;
+      full?: boolean;
     };
     stream?: {
-      chunk: boolean;
-      message: boolean;
-      none: boolean;
+      chunk?: boolean;
+      message?: boolean;
+      none?: boolean;
     };
     application?: {
-      tools: boolean;
+      tools?: boolean;
     };
   };
 }
