@@ -39,7 +39,7 @@ const handler: ServerHandler = {
           },
         }],
         options: [],
-        capabilities: { history: { compacted: false, full: false } },
+        capabilities: { history: { compacted: false, full: false }, stream: { chunk: true, none: true } },
       }],
     };
   },

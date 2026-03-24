@@ -21,7 +21,7 @@ const handler: ServerHandler = {
         description: "Streams a response word by word.",
         tools: [],
         options: [],
-        capabilities: { history: { compacted: false, full: false } },
+        capabilities: { history: { compacted: false, full: false }, stream: { message: true, chunk: true }},
       }],
     };
   },
