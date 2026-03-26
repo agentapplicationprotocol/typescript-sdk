@@ -19,8 +19,9 @@ export type Message =
   | { role: "system"; content: string }
   | { role: "user"; content: string | ContentBlock[] }
   | { role: "assistant"; content: string | ContentBlock[] }
-  | { role: "tool"; toolCallId: string; content: string | ContentBlock[] }
-  | { role: "tool_permission"; toolCallId: string; granted: boolean; reason?: string };
+  | { role: "tool"; toolCallId: string; content: string | ContentBlock[] };
+
+export type ToolPermissionMessage = { role: "tool_permission"; toolCallId: string; granted: boolean; reason?: string };
 
 // --- Tools ---
 
@@ -40,6 +41,7 @@ export interface ServerToolRef {
 
 export type AgentOption =
   | { name: string; title?: string; description: string; type: "text"; default: string }
+  | { name: string; title?: string; description: string; type: "secret"; default: string }
   | { name: string; title?: string; description: string; type: "select"; options: string[]; default: string };
 
 // --- Meta ---
@@ -53,16 +55,16 @@ export interface AgentInfo {
   options: AgentOption[];
   capabilities?: {
     history?: {
-      compacted?: boolean;
-      full?: boolean;
+      compacted?: Record<string, never>;
+      full?: Record<string, never>;
     };
     stream?: {
-      chunk?: boolean;
-      message?: boolean;
-      none?: boolean;
+      chunk?: Record<string, never>;
+      message?: Record<string, never>;
+      none?: Record<string, never>;
     };
     application?: {
-      tools?: boolean;
+      tools?: Record<string, never>;
     };
   };
 }
@@ -88,7 +90,7 @@ export interface CreateSessionRequest {
 
 export interface SessionTurnRequest {
   stream?: StreamMode;
-  messages: Message[];
+  messages: (Message | ToolPermissionMessage)[];
   tools?: ToolSpec[];
   serverTools?: ServerToolRef[];
   options?: Record<string, string>;

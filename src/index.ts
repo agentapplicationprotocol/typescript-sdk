@@ -5,6 +5,7 @@ export type { ServerHandler, ServerOptions } from "./server";
 export type {
   // Core types
   Message,
+  ToolPermissionMessage,
   ContentBlock,
   ToolSpec,
   ServerToolRef,
