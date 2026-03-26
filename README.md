@@ -12,3 +12,5 @@ npm install @agentapplicationprotocol/sdk
 ```
 
 ## [Examples](./src/examples/)
+
+## [CHANGELOG](./CHANGELOG.md)
