@@ -15,11 +15,9 @@ const client = new Client({ baseUrl: "http://localhost:3004", apiKey: "example-k
 
 async function main() {
   const events = await client.createSession({
-    agent: "inline-agent",
-    stream: "chunk",
+    agent: { name: "inline-agent", tools: [{ name: "calculate", trust: true }] },
+    stream: "delta",
     messages: [{ role: "user", content: "Calculate something." }],
-    // trust: true — server executes the tool inline, no permission needed
-    serverTools: [{ name: "calculate", trust: true }],
   });
 
   for await (const event of events) {
@@ -33,7 +31,7 @@ async function main() {
     }
     // Stream the final text response
     if (event.event === "text_delta") process.stdout.write(event.delta);
-    if (event.event === "message_stop") console.log(`\nStop: ${event.stopReason}`);
+    if (event.event === "turn_stop") console.log(`\nStop: ${event.stopReason}`);
   }
 }
 

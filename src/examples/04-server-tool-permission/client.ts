@@ -18,10 +18,8 @@ async function main() {
   // --- Grant permission ---
   console.log("--- permission granted ---");
   const r1 = await client.createSession({
-    agent: "permission-agent",
+    agent: { name: "permission-agent", tools: [{ name: "calculate", trust: false }] },
     messages: [{ role: "user", content: "Calculate something." }],
-    // Declare the server tool with trust: false — permission required before execution
-    serverTools: [{ name: "calculate", trust: false }],
   });
 
   console.log("Stop reason:", r1.stopReason); // "tool_use"
@@ -44,9 +42,8 @@ async function main() {
   // --- Deny permission ---
   console.log("\n--- permission denied ---");
   const r2 = await client.createSession({
-    agent: "permission-agent",
+    agent: { name: "permission-agent", tools: [{ name: "calculate", trust: false }] },
     messages: [{ role: "user", content: "Calculate something." }],
-    serverTools: [{ name: "calculate", trust: false }],
   });
 
   const toolCall2 = r2.messages

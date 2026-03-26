@@ -19,7 +19,7 @@ export interface ServerHandler {
   createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
   sendTurn(sessionId: string, req: SessionTurnRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
   getSession(sessionId: string): Promise<SessionResponse>;
-  listSessions(params: { limit?: number; after?: string }): Promise<SessionListResponse>;
+  listSessions(params: { after?: string }): Promise<SessionListResponse>;
   deleteSession(sessionId: string): Promise<void>;
 }
 
@@ -108,12 +108,8 @@ export class Server {
 
     // GET /sessions
     router.get("/sessions", async (c) => {
-      const limit = c.req.query("limit");
       const after = c.req.query("after");
-      const result = await handler.listSessions({
-        limit: limit !== undefined ? Number(limit) : undefined,
-        after,
-      });
+      const result = await handler.listSessions({ after });
       return c.json(result);
     });
 

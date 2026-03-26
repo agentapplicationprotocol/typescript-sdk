@@ -40,9 +40,9 @@ export interface ServerToolRef {
 // --- Agent options ---
 
 export type AgentOption =
-  | { name: string; title?: string; description: string; type: "text"; default: string }
-  | { name: string; title?: string; description: string; type: "secret"; default: string }
-  | { name: string; title?: string; description: string; type: "select"; options: string[]; default: string };
+  | { name: string; title?: string; description?: string; type: "text"; default: string }
+  | { name: string; title?: string; description?: string; type: "secret"; default: string }
+  | { name: string; title?: string; description?: string; type: "select"; options: string[]; default: string };
 
 // --- Meta ---
 
@@ -50,16 +50,16 @@ export interface AgentInfo {
   name: string;
   title?: string;
   version: string;
-  description: string;
-  tools: ToolSpec[];
-  options: AgentOption[];
+  description?: string;
+  tools?: ToolSpec[];
+  options?: AgentOption[];
   capabilities?: {
     history?: {
       compacted?: Record<string, never>;
       full?: Record<string, never>;
     };
     stream?: {
-      chunk?: Record<string, never>;
+      delta?: Record<string, never>;
       message?: Record<string, never>;
       none?: Record<string, never>;
     };
@@ -76,24 +76,27 @@ export interface MetaResponse {
 
 // --- Session ---
 
-export type StreamMode = "chunk" | "message" | "none";
-export type StopReason = "end_turn" | "tool_use" | "max_tokens" | "refusal" | "error" | "cancelled";
+export type StreamMode = "delta" | "message" | "none";
+export type StopReason = "end_turn" | "tool_use" | "max_tokens" | "refusal" | "error";
+
+export interface AgentConfig {
+  name: string;
+  tools?: ServerToolRef[];
+  options?: Record<string, string>;
+}
 
 export interface CreateSessionRequest {
-  agent: string;
+  agent: AgentConfig;
   stream?: StreamMode;
   messages: Message[];
   tools?: ToolSpec[];
-  serverTools?: ServerToolRef[];
-  options?: Record<string, string>;
 }
 
 export interface SessionTurnRequest {
   stream?: StreamMode;
   messages: (Message | ToolPermissionMessage)[];
   tools?: ToolSpec[];
-  serverTools?: ServerToolRef[];
-  options?: Record<string, string>;
+  agent?: Omit<AgentConfig, "name">;
 }
 
 export interface AgentResponse {
@@ -104,10 +107,8 @@ export interface AgentResponse {
 
 export interface SessionResponse {
   sessionId: string;
-  agent: string;
+  agent: AgentConfig;
   tools: ToolSpec[];
-  serverTools: ServerToolRef[];
-  options: Record<string, string>;
   history?: {
     compacted?: Message[];
     full?: Message[];
@@ -123,11 +124,11 @@ export interface SessionListResponse {
 
 export type SSEEvent =
   | { event: "session_start"; sessionId: string }
-  | { event: "message_start" }
+  | { event: "turn_start" }
   | { event: "text_delta"; delta: string }
   | { event: "thinking_delta"; delta: string }
   | { event: "text"; text: string }
   | { event: "thinking"; thinking: string }
   | { event: "tool_call"; toolCallId: string; name: string; input: Record<string, unknown> }
   | { event: "tool_result"; toolCallId: string; content: string | ContentBlock[] }
-  | { event: "message_stop"; stopReason: StopReason };
+  | { event: "turn_stop"; stopReason: StopReason };

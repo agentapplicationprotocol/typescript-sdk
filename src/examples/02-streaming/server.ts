@@ -21,7 +21,7 @@ const handler: ServerHandler = {
         description: "Streams a response word by word.",
         tools: [],
         options: [],
-        capabilities: { history: { compacted: false, full: false }, stream: { message: true, chunk: true }},
+        capabilities: { stream: { message: {}, delta: {} }},
       }],
     };
   },
@@ -34,20 +34,20 @@ const handler: ServerHandler = {
       // message mode: send the complete text in one event
       return (async function* () {
         yield { event: "session_start" as const, sessionId };
-        yield { event: "message_start" as const };
+        yield { event: "turn_start" as const };
         yield { event: "text" as const, text: words.join(" ") };
-        yield { event: "message_stop" as const, stopReason: "end_turn" as const };
+        yield { event: "turn_stop" as const, stopReason: "end_turn" as const };
       })();
     }
 
-    // chunk mode (default): stream each word as an incremental delta
+    // delta mode (default): stream each word as an incremental delta
     return (async function* () {
       yield { event: "session_start" as const, sessionId };
-      yield { event: "message_start" as const };
+      yield { event: "turn_start" as const };
       for (const word of words) {
         yield { event: "text_delta" as const, delta: word + " " };
       }
-      yield { event: "message_stop" as const, stopReason: "end_turn" as const };
+      yield { event: "turn_stop" as const, stopReason: "end_turn" as const };
     })();
   },
 
@@ -56,7 +56,7 @@ const handler: ServerHandler = {
   },
 
   async getSession(sessionId) {
-    return { sessionId, agent: "streaming-agent", tools: [], serverTools: [], options: {} };
+    return { sessionId, agent: { name: "streaming-agent" }, tools: [] };
   },
 
   async listSessions() { return { sessions: [] }; },

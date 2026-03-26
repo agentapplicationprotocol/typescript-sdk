@@ -8,15 +8,13 @@
  */
 
 import { serve } from "@hono/node-server";
-import { Server, ServerHandler, SessionResponse, Message } from "../../";
+import { Server, ServerHandler, SessionResponse, Message, AgentConfig } from "../../";
 
 // In-memory store keyed by sessionId
 interface Session {
   sessionId: string;
-  agent: string;
+  agent: AgentConfig;
   tools: SessionResponse["tools"];
-  serverTools: SessionResponse["serverTools"];
-  options: SessionResponse["options"];
   messages: Message[];
 }
 
@@ -38,7 +36,7 @@ const handler: ServerHandler = {
         description: "Echoes back the user's message.",
         tools: [],
         options: [],
-        capabilities: { history: { compacted: true, full: true } },
+        capabilities: { history: { compacted: {}, full: {} } },
       }],
     };
   },
@@ -55,8 +53,6 @@ const handler: ServerHandler = {
       sessionId,
       agent: req.agent,
       tools: req.tools ?? [],
-      serverTools: req.serverTools ?? [],
-      options: req.options ?? {},
       messages: [...req.messages, reply],
     });
 
@@ -82,18 +78,16 @@ const handler: ServerHandler = {
   async getSession(sessionId) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return { ...session, history: { compacted: session.messages, full: session.messages } };
-  },
+    return { ...session, history: { compacted: session.messages, full: session.messages } };  },
 
   // Return paginated session IDs
-  async listSessions({ limit, after }) {
+  async listSessions({ after }) {
     let ids = [...sessions.keys()];
     if (after) {
       const idx = ids.indexOf(after);
       if (idx !== -1) ids = ids.slice(idx + 1);
     }
-    if (limit !== undefined) ids = ids.slice(0, limit);
-    const nextCursor = ids.at(-1);
+    const nextCursor = ids.length > 0 ? ids.at(-1) : undefined;
     return { sessions: ids, ...(nextCursor ? { nextCursor } : {}) };
   },
 

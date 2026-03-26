@@ -27,7 +27,7 @@ const client = new Client({ baseUrl: "http://localhost:3002", apiKey: "example-k
 async function main() {
   // Declare the client-side tool so the agent knows it can request it
   const response = await client.createSession({
-    agent: "calculator-agent",
+    agent: { name: "calculator-agent" },
     messages: [{ role: "user", content: "Calculate something for me." }],
     tools: [{
       name: "calculate",

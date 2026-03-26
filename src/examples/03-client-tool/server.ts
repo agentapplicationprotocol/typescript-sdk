@@ -50,7 +50,7 @@ const handler: ServerHandler = {
   },
 
   async getSession(sessionId) {
-    return { sessionId, agent: "calculator-agent", tools: [], serverTools: [], options: {} };
+    return { sessionId, agent: { name: "calculator-agent" }, tools: [] };
   },
 
   async listSessions() { return { sessions: [] }; },

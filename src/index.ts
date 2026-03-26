@@ -14,6 +14,7 @@ export type {
   StopReason,
   JSONSchema,
   // Request/response types
+  AgentConfig,
   CreateSessionRequest,
   SessionTurnRequest,
   AgentResponse,

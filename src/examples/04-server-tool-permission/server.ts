@@ -78,7 +78,7 @@ const handler: ServerHandler = {
   },
 
   async getSession(sessionId) {
-    return { sessionId, agent: "permission-agent", tools: [], serverTools: [], options: {} };
+    return { sessionId, agent: { name: "permission-agent" }, tools: [] };
   },
 
   async listSessions() { return { sessions: [] }; },

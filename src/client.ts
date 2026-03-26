@@ -61,9 +61,9 @@ export class Client {
   /** PUT /session — non-streaming */
   createSession(req: CreateSessionRequest & { stream?: "none" }): Promise<AgentResponse>;
   /** PUT /session — SSE streaming */
-  createSession(req: CreateSessionRequest & { stream: "chunk" | "message" }): Promise<AsyncIterable<SSEEvent>>;
+  createSession(req: CreateSessionRequest & { stream: "delta" | "message" }): Promise<AsyncIterable<SSEEvent>>;
   createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
-    if (req.stream === "chunk" || req.stream === "message") {
+    if (req.stream === "delta" || req.stream === "message") {
       return this.streamRequest("PUT", "/session", req);
     }
     return this.request("PUT", "/session", req);
@@ -72,9 +72,9 @@ export class Client {
   /** POST /session/:id — non-streaming */
   sendTurn(sessionId: string, req: SessionTurnRequest & { stream?: "none" }): Promise<AgentResponse>;
   /** POST /session/:id — SSE streaming */
-  sendTurn(sessionId: string, req: SessionTurnRequest & { stream: "chunk" | "message" }): Promise<AsyncIterable<SSEEvent>>;
+  sendTurn(sessionId: string, req: SessionTurnRequest & { stream: "delta" | "message" }): Promise<AsyncIterable<SSEEvent>>;
   sendTurn(sessionId: string, req: SessionTurnRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
-    if (req.stream === "chunk" || req.stream === "message") {
+    if (req.stream === "delta" || req.stream === "message") {
       return this.streamRequest("POST", `/session/${sessionId}`, req);
     }
     return this.request("POST", `/session/${sessionId}`, req);

@@ -39,7 +39,7 @@ const handler: ServerHandler = {
           },
         }],
         options: [],
-        capabilities: { history: { compacted: false, full: false }, stream: { chunk: true, none: true } },
+        capabilities: { stream: { delta: {}, none: {} } },
       }],
     };
   },
@@ -55,11 +55,11 @@ const handler: ServerHandler = {
     // Stream tool_call + tool_result inline, then continue with the text response
     return (async function* () {
       yield { event: "session_start" as const, sessionId };
-      yield { event: "message_start" as const };
+      yield { event: "turn_start" as const };
       yield { event: "tool_call" as const, toolCallId, name: "calculate", input: { expression } };
       yield { event: "tool_result" as const, toolCallId, content: result };
       yield { event: "text_delta" as const, delta: `The result of ${expression} is ${result}.` };
-      yield { event: "message_stop" as const, stopReason: "end_turn" as const };
+      yield { event: "turn_stop" as const, stopReason: "end_turn" as const };
     })();
   },
 
@@ -68,7 +68,7 @@ const handler: ServerHandler = {
   },
 
   async getSession(sessionId) {
-    return { sessionId, agent: "inline-agent", tools: [], serverTools: [], options: {} };
+    return { sessionId, agent: { name: "inline-agent" }, tools: [] };
   },
 
   async listSessions() { return { sessions: [] }; },

@@ -23,7 +23,7 @@ async function main() {
 
   // Start a new session — the server returns a sessionId and the first reply
   const response = await client.createSession({
-    agent: "echo-agent",
+    agent: { name: "echo-agent" },
     messages: [{ role: "user", content: "Hello, world!" }],
   });
   console.log("Session ID:", response.sessionId);
