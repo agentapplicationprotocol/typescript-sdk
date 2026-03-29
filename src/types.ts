@@ -192,7 +192,7 @@ export interface CreateSessionRequest {
 
 /** Request body for `POST /session/:id`. */
 export interface SessionTurnRequest {
-  /** Session-level agent overrides. Agent name cannot be changed. */
+  /** Session-level agent overrides. Agent name cannot be changed. Options merged by key. */
   agent?: Omit<AgentConfig, "name">;
   /** Response mode. Defaults to `"none"`. */
   stream?: StreamMode;
