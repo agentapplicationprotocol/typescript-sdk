@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
+import type { Context } from "hono";
 import type { SSEStreamingApi } from "hono/streaming";
 import {
   AgentResponse,
@@ -44,8 +45,14 @@ export async function writeSSEEvents(
 // --- Server ---
 
 export interface ServerOptions {
-  /** Called on every request (except GET /meta) to authenticate. Return false to reject. */
-  authenticate?: (apiKey: string) => boolean | Promise<boolean>;
+  /**
+   * Called on every request to authenticate. Return false to reject.
+   * Use `c.req.path` to allow unauthenticated access to specific routes.
+   * @example
+   * // Allow unauthenticated access to GET /meta
+   * authenticate: (apiKey, c) => c.req.path === "/meta" || apiKey === "secret"
+   */
+  authenticate?: (apiKey: string, c: Context) => boolean | Promise<boolean>;
   /** CORS origin(s) to allow. Disabled by default. */
   cors?: string | string[];
   /** Base path to mount all routes under, e.g. "/api/v1". */
@@ -64,25 +71,21 @@ export class Server {
       router.use("*", cors({ origin: options.cors }));
     }
 
-    const auth = async (apiKey: string): Promise<boolean> => {
-      if (!authenticate) return true;
-      return authenticate(apiKey);
-    };
-
     const getApiKey = (authHeader: string | undefined): string =>
       authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-    // GET /meta — auth optional
+    // Auth middleware for all routes
+    router.use("*", async (c, next) => {
+      if (!authenticate) return next();
+      const apiKey = getApiKey(c.req.header("Authorization"));
+      if (!(await authenticate(apiKey, c))) return c.json({ error: "Unauthorized" }, 401);
+      return next();
+    });
+
+    // GET /meta
     router.get("/meta", async (c) => {
       const meta = await handler.getMeta();
       return c.json(meta);
-    });
-
-    // Auth middleware for all other routes
-    router.use("*", async (c, next) => {
-      const apiKey = getApiKey(c.req.header("Authorization"));
-      if (!(await auth(apiKey))) return c.json({ error: "Unauthorized" }, 401);
-      return next();
     });
 
     // PUT /session
@@ -90,9 +93,7 @@ export class Server {
       const req = await c.req.json<CreateSessionRequest>();
       const result = await handler.createSession(req);
       if (isAsyncIterable(result)) {
-        return streamSSE(c, (stream) =>
-          writeSSEEvents(stream, result as AsyncIterable<SSEEvent>),
-        );
+        return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
       }
       return c.json(result as AgentResponse, 201);
     });
@@ -102,9 +103,7 @@ export class Server {
       const req = await c.req.json<SessionTurnRequest>();
       const result = await handler.sendTurn(c.req.param("id"), req);
       if (isAsyncIterable(result)) {
-        return streamSSE(c, (stream) =>
-          writeSSEEvents(stream, result as AsyncIterable<SSEEvent>),
-        );
+        return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
       }
       return c.json(result as AgentResponse);
     });
@@ -135,8 +134,6 @@ export class Server {
 
 function isAsyncIterable(value: unknown): boolean {
   return (
-    value != null &&
-    typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] ===
-      "function"
+    value != null && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === "function"
   );
 }

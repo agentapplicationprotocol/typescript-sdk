@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `authenticate` option now receives the Hono `Context` as a second argument, enabling per-route auth logic (e.g. allowing unauthenticated `GET /meta`)
+- `authenticate` is now applied to all routes including `GET /meta`
 - `ContentBlock` image variant: replaced `{ mimeType, data }` with `{ url }` (supports `https://` and `data:` URIs)
 - `ServerToolRef.trust` is now optional (defaults to `false`)
 - `SessionListResponse.nextCursor` renamed to `next`
