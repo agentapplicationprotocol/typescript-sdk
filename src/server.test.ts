@@ -56,6 +56,38 @@ describe("Server", () => {
     expect(await res.json()).toEqual(session);
   });
 
+  it("GET /session/:id redacts secret options", async () => {
+    const secretSession: SessionResponse = {
+      sessionId: "s1",
+      agent: { name: "a", options: { key: "mysecret", model: "gpt-4" } },
+    };
+    const secretMeta: MetaResponse = {
+      version: 1,
+      agents: [
+        {
+          name: "a",
+          version: "1.0.0",
+          options: [
+            { type: "secret", name: "key", default: "" },
+            { type: "text", name: "model", default: "" },
+          ],
+        },
+      ],
+    };
+    const server = new Server(
+      makeHandler({
+        getSession: vi.fn().mockResolvedValue(secretSession),
+        getMeta: vi.fn().mockResolvedValue(secretMeta),
+      }),
+    );
+    const res = await server.app.fetch(req("GET", "/session/s1"));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      ...secretSession,
+      agent: { ...secretSession.agent, options: { key: "***", model: "gpt-4" } },
+    });
+  });
+
   it("GET /sessions returns session list", async () => {
     const handler = makeHandler();
     const server = new Server(handler);

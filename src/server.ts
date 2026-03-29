@@ -4,6 +4,7 @@ import { streamSSE } from "hono/streaming";
 import type { SSEStreamingApi } from "hono/streaming";
 import type { Context } from "hono";
 import {
+  AgentInfo,
   AgentResponse,
   CreateSessionRequest,
   CreateSessionResponse,
@@ -40,6 +41,25 @@ async function writeSSEEvents(
   for await (const { event, ...data } of events) {
     await stream.writeSSE({ event, data: JSON.stringify(data) });
   }
+}
+
+function redactSecretOptions(session: SessionResponse, agents: AgentInfo[]): SessionResponse {
+  const { options } = session.agent;
+  if (!options) return session;
+  const agentInfo = agents.find((a) => a.name === session.agent.name);
+  const secretNames = new Set(
+    agentInfo?.options?.filter((o) => o.type === "secret").map((o) => o.name) ?? [],
+  );
+  if (secretNames.size === 0) return session;
+  return {
+    ...session,
+    agent: {
+      ...session.agent,
+      options: Object.fromEntries(
+        Object.entries(options).map(([k, v]) => [k, secretNames.has(k) ? "***" : v]),
+      ),
+    },
+  };
 }
 
 // --- Server ---
@@ -112,8 +132,11 @@ export class Server {
 
     // GET /session/:id
     router.get("/session/:id", async (c) => {
-      const session = await handler.getSession(c.req.param("id"));
-      return c.json(session);
+      const [session, meta] = await Promise.all([
+        handler.getSession(c.req.param("id")),
+        handler.getMeta(),
+      ]);
+      return c.json(redactSecretOptions(session, meta.agents));
     });
 
     // GET /sessions

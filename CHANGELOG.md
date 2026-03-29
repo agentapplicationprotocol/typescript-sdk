@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Server `GET /session/:id` now redacts option values of type `"secret"` to `"***"` in the response
+
 ## [0.3.0] - 2026-03-29
 
 ### Changed
