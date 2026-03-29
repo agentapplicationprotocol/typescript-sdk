@@ -19,6 +19,7 @@ export interface ServerHandler {
   getMeta(): Promise<MetaResponse>;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse>;
+  /** The last message in `req.messages` is guaranteed to be a user message. */
   createSession(
     req: CreateSessionRequest,
   ): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
@@ -89,6 +90,8 @@ export class Server {
     // PUT /session
     router.put("/session", async (c) => {
       const req = await c.req.json<CreateSessionRequest>();
+      if (req.messages.at(-1)?.role !== "user")
+        return c.json({ error: "Last message must be a user message" }, 400);
       const result = await handler.createSession(req);
       if (req.stream === "delta" || req.stream === "message") {
         return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));

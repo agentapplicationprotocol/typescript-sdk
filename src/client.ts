@@ -42,11 +42,7 @@ export class Client {
     return `${this.baseUrl}${path}`;
   }
 
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown,
-  ): Promise<T> {
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const res = await fetch(this.url(path), {
       method,
       headers: this.headers,
@@ -109,16 +105,14 @@ export class Client {
   }
 
   /** PUT /session — non-streaming */
-  createSession(
-    req: CreateSessionRequest & { stream?: "none" },
-  ): Promise<AgentResponse>;
+  createSession(req: CreateSessionRequest & { stream?: "none" }): Promise<AgentResponse>;
   /** PUT /session — SSE streaming */
   createSession(
     req: CreateSessionRequest & { stream: "delta" | "message" },
   ): Promise<AsyncIterable<SSEEvent>>;
-  createSession(
-    req: CreateSessionRequest,
-  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
+  createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
+    if (req.messages.at(-1)?.role !== "user")
+      throw new Error("Last message must be a user message");
     if (req.stream === "delta" || req.stream === "message") {
       return this.streamRequest("PUT", "/session", req);
     }
@@ -151,9 +145,7 @@ export class Client {
   }
 }
 
-async function* parseSSE(
-  body: ReadableStream<Uint8Array>,
-): AsyncIterable<SSEEvent> {
+async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncIterable<SSEEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   const queue: SSEEvent[] = [];

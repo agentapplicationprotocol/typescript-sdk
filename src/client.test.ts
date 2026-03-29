@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Client, ClientError } from "./client";
-import type { AgentResponse, MetaResponse, SessionListResponse, SessionResponse, SSEEvent } from "./types";
+import type {
+  AgentResponse,
+  MetaResponse,
+  SessionListResponse,
+  SessionResponse,
+  SSEEvent,
+} from "./types";
 
 const BASE_URL = "https://example.com";
 const API_KEY = "test-key";
@@ -23,11 +29,19 @@ function mockSSEFetch(events: SSEEvent[], status = 200) {
   let i = 0;
   const body = {
     getReader: () => ({
-      read: async () => i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined },
+      read: async () =>
+        i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined },
       releaseLock: vi.fn(),
     }),
   } as unknown as ReadableStream<Uint8Array>;
-  return vi.fn().mockResolvedValue({ ok: status >= 200 && status < 300, status, body, text: () => Promise.resolve("") });
+  return vi
+    .fn()
+    .mockResolvedValue({
+      ok: status >= 200 && status < 300,
+      status,
+      body,
+      text: () => Promise.resolve(""),
+    });
 }
 
 let client: Client;
@@ -80,9 +94,18 @@ describe("Client", () => {
   });
 
   it("listAllSessions: paginates until no next", async () => {
-    const fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ sessions: ["s1"], next: "c1" }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ sessions: ["s2"] }) });
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ sessions: ["s1"], next: "c1" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ sessions: ["s2"] }),
+      });
     vi.stubGlobal("fetch", fetch);
     expect(await client.listAllSessions()).toEqual(["s1", "s2"]);
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -93,10 +116,23 @@ describe("Client", () => {
     await expect(client.deleteSession("s1")).resolves.toBeUndefined();
   });
 
+  it("createSession: throws if last message is not a user message", () => {
+    vi.stubGlobal("fetch", mockFetch({}));
+    expect(() =>
+      client.createSession({
+        agent: { name: "a" },
+        messages: [{ role: "assistant", content: "hi" }],
+      }),
+    ).toThrow("Last message must be a user message");
+  });
+
   it("createSession: non-streaming returns AgentResponse", async () => {
     const res: AgentResponse = { sessionId: "s1", stopReason: "end_turn", messages: [] };
     vi.stubGlobal("fetch", mockFetch(res, 201));
-    const result = await client.createSession({ agent: { name: "a" }, messages: [{ role: "user", content: "hi" }] });
+    const result = await client.createSession({
+      agent: { name: "a" },
+      messages: [{ role: "user", content: "hi" }],
+    });
     expect(result).toEqual(res);
   });
 
@@ -107,7 +143,11 @@ describe("Client", () => {
       { event: "turn_stop", stopReason: "end_turn" },
     ];
     vi.stubGlobal("fetch", mockSSEFetch(events));
-    const stream = await client.createSession({ agent: { name: "a" }, messages: [{ role: "user", content: "hi" }], stream: "message" });
+    const stream = await client.createSession({
+      agent: { name: "a" },
+      messages: [{ role: "user", content: "hi" }],
+      stream: "message",
+    });
     const received: SSEEvent[] = [];
     for await (const e of stream) received.push(e);
     expect(received).toEqual(events);
@@ -127,24 +167,53 @@ describe("Client", () => {
       { event: "turn_stop", stopReason: "end_turn" },
     ];
     vi.stubGlobal("fetch", mockSSEFetch(events));
-    const stream = await client.sendTurn("s1", { messages: [{ role: "user", content: "hi" }], stream: "message" });
+    const stream = await client.sendTurn("s1", {
+      messages: [{ role: "user", content: "hi" }],
+      stream: "message",
+    });
     const received: SSEEvent[] = [];
     for await (const e of stream) received.push(e);
     expect(received).toEqual(events);
   });
 
   it("streamRequest: throws ClientError on non-ok response", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403, body: null, text: () => Promise.resolve("Forbidden") }));
-    await expect(client.createSession({ agent: { name: "a" }, messages: [{ role: "user", content: "hi" }], stream: "delta" })).rejects.toThrow(ClientError);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({
+          ok: false,
+          status: 403,
+          body: null,
+          text: () => Promise.resolve("Forbidden"),
+        }),
+    );
+    await expect(
+      client.createSession({
+        agent: { name: "a" },
+        messages: [{ role: "user", content: "hi" }],
+        stream: "delta",
+      }),
+    ).rejects.toThrow(ClientError);
   });
 
   it("throws ClientError on non-ok response", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401, text: () => Promise.resolve("Unauthorized") }));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({ ok: false, status: 401, text: () => Promise.resolve("Unauthorized") }),
+    );
     await expect(client.getMeta()).rejects.toThrow(ClientError);
   });
 
   it("ClientError has correct properties", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, text: () => Promise.resolve("Not Found") }));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({ ok: false, status: 404, text: () => Promise.resolve("Not Found") }),
+    );
     const err = await client.getSession("x").catch((e) => e);
     expect(err).toBeInstanceOf(ClientError);
     expect(err.status).toBe(404);

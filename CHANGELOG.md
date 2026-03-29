@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Named message interfaces: `SystemMessage`, `UserMessage`, `AssistantMessage`, `ToolMessage`, `HistoryMessage`
 - Image capability: `AgentInfo.capabilities.image` (`http`, `data`)
 - `listAllSessions()` helper that auto-paginates all session IDs
+- `createSession()` validates that the last message is a user message (client throws, server returns 400)
 
 ### Removed
 

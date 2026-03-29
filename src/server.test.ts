@@ -64,6 +64,17 @@ describe("Server", () => {
     expect(handler.listSessions).toHaveBeenCalledWith({ after: "cursor1" });
   });
 
+  it("PUT /session returns 400 if last message is not a user message", async () => {
+    const server = new Server(makeHandler());
+    const res = await server.app.fetch(
+      req("PUT", "/session", {
+        agent: { name: "a" },
+        messages: [{ role: "assistant", content: "hi" }],
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("PUT /session returns 201 with AgentResponse", async () => {
     const server = new Server(makeHandler());
     const res = await server.app.fetch(
