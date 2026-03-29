@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Exclude test files from published package (`dist/**/*.test.js`, `dist/**/*.test.d.ts`)
+
 ## [0.2.0] - 2026-03-29
 
 ### Added
