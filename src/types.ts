@@ -204,10 +204,12 @@ export interface SessionTurnRequest {
 
 /** JSON response body for non-streaming (`stream: "none"`) requests. */
 export interface AgentResponse {
-  /** Present in `PUT /session` response only. */
-  sessionId?: string;
   stopReason: StopReason;
   messages: HistoryMessage[];
+}
+
+export interface CreateSessionResponse extends AgentResponse {
+  sessionId: string;
 }
 
 /** Response body for `GET /session/:id`. */

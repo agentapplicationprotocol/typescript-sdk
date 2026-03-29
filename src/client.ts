@@ -2,6 +2,7 @@ import { createParser } from "eventsource-parser";
 import {
   AgentResponse,
   CreateSessionRequest,
+  CreateSessionResponse,
   MetaResponse,
   SessionListResponse,
   SessionResponse,
@@ -105,12 +106,14 @@ export class Client {
   }
 
   /** PUT /session — non-streaming */
-  createSession(req: CreateSessionRequest & { stream?: "none" }): Promise<AgentResponse>;
+  createSession(req: CreateSessionRequest & { stream?: "none" }): Promise<CreateSessionResponse>;
   /** PUT /session — SSE streaming */
   createSession(
     req: CreateSessionRequest & { stream: "delta" | "message" },
   ): Promise<AsyncIterable<SSEEvent>>;
-  createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
+  createSession(
+    req: CreateSessionRequest,
+  ): Promise<CreateSessionResponse | AsyncIterable<SSEEvent>> {
     if (req.messages.at(-1)?.role !== "user")
       throw new Error("Last message must be a user message");
     if (req.stream === "delta" || req.stream === "message") {

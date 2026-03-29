@@ -6,6 +6,7 @@ import type { Context } from "hono";
 import {
   AgentResponse,
   CreateSessionRequest,
+  CreateSessionResponse,
   MetaResponse,
   SessionListResponse,
   SessionResponse,
@@ -20,7 +21,9 @@ export interface ServerHandler {
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse>;
   /** The last message in `req.messages` is guaranteed to be a user message. */
-  createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>>;
+  createSession(
+    req: CreateSessionRequest,
+  ): Promise<CreateSessionResponse | AsyncIterable<SSEEvent>>;
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest,
@@ -94,7 +97,7 @@ export class Server {
       if (req.stream === "delta" || req.stream === "message") {
         return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
       }
-      return c.json(result as AgentResponse, 201);
+      return c.json(result as CreateSessionResponse, 201);
     });
 
     // POST /session/:id

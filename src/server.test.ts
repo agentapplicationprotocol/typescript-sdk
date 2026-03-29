@@ -12,6 +12,7 @@ import type {
 const meta: MetaResponse = { version: 1, agents: [] };
 const session: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
 const agentResponse: AgentResponse = { stopReason: "end_turn", messages: [] };
+const createSessionResponse = { ...agentResponse, sessionId: "s1" };
 const sessionList: SessionListResponse = { sessions: ["s1"] };
 
 async function* sseEvents(): AsyncIterable<SSEEvent> {
@@ -25,7 +26,7 @@ function makeHandler(overrides: Partial<ServerHandler> = {}): ServerHandler {
     getMeta: vi.fn().mockResolvedValue(meta),
     listSessions: vi.fn().mockResolvedValue(sessionList),
     getSession: vi.fn().mockResolvedValue(session),
-    createSession: vi.fn().mockResolvedValue(agentResponse),
+    createSession: vi.fn().mockResolvedValue(createSessionResponse),
     sendTurn: vi.fn().mockResolvedValue(agentResponse),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -81,7 +82,7 @@ describe("Server", () => {
       req("PUT", "/session", { agent: { name: "a" }, messages: [{ role: "user", content: "hi" }] }),
     );
     expect(res.status).toBe(201);
-    expect(await res.json()).toEqual(agentResponse);
+    expect(await res.json()).toEqual(createSessionResponse);
   });
 
   it("PUT /session with stream returns SSE", async () => {

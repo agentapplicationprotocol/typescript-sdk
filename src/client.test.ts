@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Client, ClientError } from "./client";
 import type {
   AgentResponse,
+  CreateSessionResponse,
   MetaResponse,
   SessionListResponse,
   SessionResponse,
@@ -34,14 +35,12 @@ function mockSSEFetch(events: SSEEvent[], status = 200) {
       releaseLock: vi.fn(),
     }),
   } as unknown as ReadableStream<Uint8Array>;
-  return vi
-    .fn()
-    .mockResolvedValue({
-      ok: status >= 200 && status < 300,
-      status,
-      body,
-      text: () => Promise.resolve(""),
-    });
+  return vi.fn().mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    body,
+    text: () => Promise.resolve(""),
+  });
 }
 
 let client: Client;
@@ -127,7 +126,7 @@ describe("Client", () => {
   });
 
   it("createSession: non-streaming returns AgentResponse", async () => {
-    const res: AgentResponse = { sessionId: "s1", stopReason: "end_turn", messages: [] };
+    const res: CreateSessionResponse = { sessionId: "s1", stopReason: "end_turn", messages: [] };
     vi.stubGlobal("fetch", mockFetch(res, 201));
     const result = await client.createSession({
       agent: { name: "a" },
@@ -179,14 +178,12 @@ describe("Client", () => {
   it("streamRequest: throws ClientError on non-ok response", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: false,
-          status: 403,
-          body: null,
-          text: () => Promise.resolve("Forbidden"),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        body: null,
+        text: () => Promise.resolve("Forbidden"),
+      }),
     );
     await expect(
       client.createSession({

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: `AgentResponse.sessionId` removed; `createSession` now returns `CreateSessionResponse` (extends `AgentResponse`) with `sessionId: string` required
+
 ## [0.2.1] - 2026-03-29
 
 ### Fixed
