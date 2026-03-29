@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Named message interfaces: `SystemMessage`, `UserMessage`, `AssistantMessage`, `ToolMessage`, `HistoryMessage`
+- Image capability: `AgentInfo.capabilities.image` (`http`, `data`)
+- `listAllSessions()` helper that auto-paginates all session IDs
+
+### Changed
+
+- `ContentBlock` image variant: replaced `{ mimeType, data }` with `{ url }` (supports `https://` and `data:` URIs)
+- `ServerToolRef.trust` is now optional (defaults to `false`)
+- `SessionListResponse.nextCursor` renamed to `next`
+- `SessionTurnRequest.messages` narrowed to `(UserMessage | ToolMessage | ToolPermissionMessage)[]`
+- `SessionResponse.tools` is now optional
+- Simplified type exports with `export type *`
+- Removed `limit` param from `listSessions()`
+
 ## [0.1.0] - 2026-03-26
 
 ### Added
