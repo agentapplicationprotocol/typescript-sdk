@@ -92,7 +92,7 @@ export class Server {
     router.put("/session", async (c) => {
       const req = await c.req.json<CreateSessionRequest>();
       const result = await handler.createSession(req);
-      if (isAsyncIterable(result)) {
+      if (req.stream === "delta" || req.stream === "message") {
         return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
       }
       return c.json(result as AgentResponse, 201);
@@ -102,7 +102,7 @@ export class Server {
     router.post("/session/:id", async (c) => {
       const req = await c.req.json<SessionTurnRequest>();
       const result = await handler.sendTurn(c.req.param("id"), req);
-      if (isAsyncIterable(result)) {
+      if (req.stream === "delta" || req.stream === "message") {
         return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
       }
       return c.json(result as AgentResponse);
@@ -130,10 +130,4 @@ export class Server {
 
   /** Returns the Hono fetch handler, ready to pass to any runtime (Node, Bun, Deno, etc.) */
   fetch = (req: Request): Response | Promise<Response> => this.app.fetch(req);
-}
-
-function isAsyncIterable(value: unknown): boolean {
-  return (
-    value != null && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === "function"
-  );
 }
