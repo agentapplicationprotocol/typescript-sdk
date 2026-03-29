@@ -4,7 +4,11 @@ export { Server, writeSSEEvents } from "./server";
 export type { ServerHandler, ServerOptions } from "./server";
 export type {
   // Core types
-  Message,
+  HistoryMessage,
+  SystemMessage,
+  UserMessage,
+  AssistantMessage,
+  ToolMessage,
   ToolPermissionMessage,
   ContentBlock,
   ToolSpec,

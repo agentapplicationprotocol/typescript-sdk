@@ -11,17 +11,39 @@ export type ContentBlock =
   | { type: "text"; text: string }
   | { type: "thinking"; thinking: string }
   | { type: "tool_use"; toolCallId: string; name: string; input: Record<string, unknown> }
-  | { type: "image"; mimeType: string; data: string };
+  | { type: "image"; url: string }; // supports https:// and data: URIs
 
 // --- Messages ---
 
-export type Message =
-  | { role: "system"; content: string }
-  | { role: "user"; content: string | ContentBlock[] }
-  | { role: "assistant"; content: string | ContentBlock[] }
-  | { role: "tool"; toolCallId: string; content: string | ContentBlock[] };
+export interface SystemMessage {
+  role: "system";
+  content: string;
+}
 
-export type ToolPermissionMessage = { role: "tool_permission"; toolCallId: string; granted: boolean; reason?: string };
+export interface UserMessage {
+  role: "user";
+  content: string | ContentBlock[];
+}
+
+export interface AssistantMessage {
+  role: "assistant";
+  content: string | ContentBlock[];
+}
+
+export interface ToolMessage {
+  role: "tool";
+  toolCallId: string;
+  content: string | ContentBlock[];
+}
+
+export type HistoryMessage = SystemMessage | UserMessage | AssistantMessage | ToolMessage;
+
+export interface ToolPermissionMessage {
+  role: "tool_permission";
+  toolCallId: string;
+  granted: boolean;
+  reason?: string;
+}
 
 // --- Tools ---
 
@@ -34,15 +56,15 @@ export interface ToolSpec {
 
 export interface ServerToolRef {
   name: string;
-  trust: boolean;
+  trust?: boolean; // default: false
 }
 
 // --- Agent options ---
 
 export type AgentOption =
-  | { name: string; title?: string; description?: string; type: "text"; default: string }
-  | { name: string; title?: string; description?: string; type: "secret"; default: string }
-  | { name: string; title?: string; description?: string; type: "select"; options: string[]; default: string };
+  | { type: "text"; name: string; title?: string; description?: string; default: string }
+  | { type: "secret"; name: string; title?: string; description?: string; default: string }
+  | { type: "select"; name: string; title?: string; description?: string; options: string[]; default: string };
 
 // --- Meta ---
 
@@ -66,6 +88,10 @@ export interface AgentInfo {
     application?: {
       tools?: Record<string, never>;
     };
+    image?: {
+      http?: Record<string, never>;
+      data?: Record<string, never>;
+    };
   };
 }
 
@@ -88,13 +114,13 @@ export interface AgentConfig {
 export interface CreateSessionRequest {
   agent: AgentConfig;
   stream?: StreamMode;
-  messages: Message[];
+  messages: HistoryMessage[]; // seed history; last message must be a user message
   tools?: ToolSpec[];
 }
 
 export interface SessionTurnRequest {
   stream?: StreamMode;
-  messages: (Message | ToolPermissionMessage)[];
+  messages: (UserMessage | ToolMessage | ToolPermissionMessage)[];
   tools?: ToolSpec[];
   agent?: Omit<AgentConfig, "name">;
 }
@@ -102,22 +128,22 @@ export interface SessionTurnRequest {
 export interface AgentResponse {
   sessionId?: string;
   stopReason: StopReason;
-  messages: Message[];
+  messages: HistoryMessage[];
 }
 
 export interface SessionResponse {
   sessionId: string;
   agent: AgentConfig;
-  tools: ToolSpec[];
+  tools?: ToolSpec[];
   history?: {
-    compacted?: Message[];
-    full?: Message[];
+    compacted?: HistoryMessage[];
+    full?: HistoryMessage[];
   };
 }
 
 export interface SessionListResponse {
   sessions: string[];
-  nextCursor?: string;
+  next?: string; // absent when no more results
 }
 
 // --- SSE events ---
