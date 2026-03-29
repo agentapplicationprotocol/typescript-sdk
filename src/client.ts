@@ -83,22 +83,10 @@ export class Client {
   }
 
   /** GET /sessions */
-  listSessions(params?: {
-    limit?: number;
-    after?: string;
-  }): Promise<SessionListResponse> {
+  listSessions(params?: { after?: string }): Promise<SessionListResponse> {
     let path = "/sessions";
-    if (params) {
-      const entries = Object.entries(params).filter(
-        (e): e is [string, string | number] => e[1] !== undefined,
-      );
-      if (entries.length > 0) {
-        path +=
-          "?" +
-          new URLSearchParams(
-            entries.map(([k, v]) => [k, String(v)]),
-          ).toString();
-      }
+    if (params?.after) {
+      path += "?" + new URLSearchParams({ after: params.after }).toString();
     }
     return this.request("GET", path);
   }
