@@ -10,7 +10,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
+    "test": "vitest run --exclude 'dist/**'",
     "prepare": "husky",
     "dev": "tsc --watch",
     "example:basic:server": "tsx src/examples/01-basic/server.ts",
