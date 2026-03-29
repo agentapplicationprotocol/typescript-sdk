@@ -7,46 +7,69 @@ export type JSONSchema = JSONSchema7;
 
 // --- Content blocks ---
 
+/** A single block of content within a message. */
 export type ContentBlock =
   | { type: "text"; text: string }
   | { type: "thinking"; thinking: string }
-  | { type: "tool_use"; toolCallId: string; name: string; input: Record<string, unknown> }
-  | { type: "image"; url: string }; // supports https:// and data: URIs
+  | {
+      type: "tool_use";
+      toolCallId: string;
+      name: string;
+      input: Record<string, unknown>;
+    }
+  | {
+      type: "image";
+      /** Supports `https://` URLs and `data:` URIs (base64). */
+      url: string;
+    };
 
 // --- Messages ---
 
+/** A system-role message providing instructions to the agent. */
 export interface SystemMessage {
   role: "system";
   content: string;
 }
 
+/** A user-role message. */
 export interface UserMessage {
   role: "user";
   content: string | ContentBlock[];
 }
 
+/** An assistant-role message. */
 export interface AssistantMessage {
   role: "assistant";
   content: string | ContentBlock[];
 }
 
+/** A tool result message returned by the application after a `tool_use` block. */
 export interface ToolMessage {
   role: "tool";
   toolCallId: string;
   content: string | ContentBlock[];
 }
 
-export type HistoryMessage = SystemMessage | UserMessage | AssistantMessage | ToolMessage;
+/** A message that can appear in conversation history. */
+export type HistoryMessage =
+  | SystemMessage
+  | UserMessage
+  | AssistantMessage
+  | ToolMessage;
 
+/** Grants or denies permission for the server to invoke a tool on the client's behalf. */
 export interface ToolPermissionMessage {
   role: "tool_permission";
   toolCallId: string;
+  /** Whether the client grants permission for the tool call. */
   granted: boolean;
+  /** Optional explanation, especially useful when `granted` is `false`. */
   reason?: string;
 }
 
 // --- Tools ---
 
+/** Declares a tool (application-side in requests; server-side in `/meta`). */
 export interface ToolSpec {
   name: string;
   title?: string;
@@ -54,48 +77,92 @@ export interface ToolSpec {
   inputSchema: JSONSchema;
 }
 
+/** References a server-side tool to enable for a session. */
 export interface ServerToolRef {
+  /** Server tool name as declared in `/meta`. */
   name: string;
-  trust?: boolean; // default: false
+  /** If `true`, the server may invoke this tool without requesting client permission. Defaults to `false`. */
+  trust?: boolean;
 }
 
 // --- Agent options ---
 
+/** A configurable option the client may set per request. */
 export type AgentOption =
-  | { type: "text"; name: string; title?: string; description?: string; default: string }
-  | { type: "secret"; name: string; title?: string; description?: string; default: string }
-  | { type: "select"; name: string; title?: string; description?: string; options: string[]; default: string };
+  | {
+      type: "text";
+      name: string;
+      title?: string;
+      description?: string;
+      default: string;
+    }
+  | {
+      type: "secret";
+      name: string;
+      title?: string;
+      description?: string;
+      default: string;
+    }
+  | {
+      type: "select";
+      name: string;
+      title?: string;
+      description?: string;
+      options: string[];
+      default: string;
+    };
 
 // --- Meta ---
 
+/** Describes an agent available on the server, as returned by `GET /meta`. */
 export interface AgentInfo {
+  /** Unique identifier for the agent on this server. */
   name: string;
+  /** Human-readable display name. */
   title?: string;
+  /** Semantic version of the agent. */
   version: string;
   description?: string;
+  /** Server-side tools the agent exposes to the client for configuration. */
   tools?: ToolSpec[];
+  /** Configurable options the client may set per request. */
   options?: AgentOption[];
+  /** Declares what the agent supports. Missing fields should be treated as unsupported. */
   capabilities?: {
+    /** Declares what history the agent can return in `GET /session/:id`. */
     history?: {
+      /** Server can return compacted history. */
       compacted?: Record<string, never>;
+      /** Server can return full uncompacted history. */
       full?: Record<string, never>;
     };
+    /** Declares which stream modes the agent supports. */
     stream?: {
+      /** Agent supports `"delta"` streaming. */
       delta?: Record<string, never>;
+      /** Agent supports `"message"` streaming. */
       message?: Record<string, never>;
+      /** Agent supports non-streaming (`"none"`) responses. */
       none?: Record<string, never>;
     };
+    /** Declares what application-provided inputs the agent supports. */
     application?: {
+      /** Agent accepts application-side tools in requests. */
       tools?: Record<string, never>;
     };
+    /** Declares what image input the agent supports. */
     image?: {
+      /** Agent accepts `https://` image URLs. */
       http?: Record<string, never>;
+      /** Agent accepts `data:` URI (base64) images. */
       data?: Record<string, never>;
     };
   };
 }
 
+/** Response body for `GET /meta`. */
 export interface MetaResponse {
+  /** AAP protocol version. */
   version: number;
   agents: AgentInfo[];
 }
@@ -103,58 +170,97 @@ export interface MetaResponse {
 // --- Session ---
 
 export type StreamMode = "delta" | "message" | "none";
-export type StopReason = "end_turn" | "tool_use" | "max_tokens" | "refusal" | "error";
+export type StopReason =
+  | "end_turn"
+  | "tool_use"
+  | "max_tokens"
+  | "refusal"
+  | "error";
 
+/** Agent configuration supplied with a request. */
 export interface AgentConfig {
+  /** Agent name to invoke. */
   name: string;
+  /** Server-side tools to enable. If omitted, all exposed agent tools are disabled. */
   tools?: ServerToolRef[];
+  /** Key-value pairs matching the agent's declared options. */
   options?: Record<string, string>;
 }
 
+/** Request body for `PUT /session`. */
 export interface CreateSessionRequest {
+  /** Agent configuration. `name` is required at session creation. */
   agent: AgentConfig;
+  /** Response mode. Defaults to `"none"`. */
   stream?: StreamMode;
-  messages: HistoryMessage[]; // seed history; last message must be a user message
+  /** Seed history. The last message must be a `user` message. */
+  messages: HistoryMessage[];
+  /** Application-side tools with full schema. */
   tools?: ToolSpec[];
 }
 
+/** Request body for `POST /session/:id`. */
 export interface SessionTurnRequest {
-  stream?: StreamMode;
-  messages: (UserMessage | ToolMessage | ToolPermissionMessage)[];
-  tools?: ToolSpec[];
+  /** Session-level agent overrides. Agent name cannot be changed. */
   agent?: Omit<AgentConfig, "name">;
+  /** Response mode. Defaults to `"none"`. */
+  stream?: StreamMode;
+  /** A single user message, or a mixed list of tool results and tool permissions. */
+  messages: (UserMessage | ToolMessage | ToolPermissionMessage)[];
+  /** Application-side tools. Overrides tools declared at session creation. */
+  tools?: ToolSpec[];
 }
 
+/** JSON response body for non-streaming (`stream: "none"`) requests. */
 export interface AgentResponse {
+  /** Present in `PUT /session` response only. */
   sessionId?: string;
   stopReason: StopReason;
   messages: HistoryMessage[];
 }
 
+/** Response body for `GET /session/:id`. */
 export interface SessionResponse {
   sessionId: string;
+  /** Secret option values in `agent.options` are redacted (e.g. `"***"`). */
   agent: AgentConfig;
+  /** Application-side tools declared for this session. */
   tools?: ToolSpec[];
   history?: {
+    /** Omitted if the server chooses not to expose. */
     compacted?: HistoryMessage[];
+    /** Omitted if the server chooses not to expose. */
     full?: HistoryMessage[];
   };
 }
 
+/** Response body for `GET /sessions`. */
 export interface SessionListResponse {
+  /** Array of session IDs. */
   sessions: string[];
-  next?: string; // absent when no more results
+  /** Pagination cursor; absent when there are no more results. Pass as `after` to get the next page. */
+  next?: string;
 }
 
 // --- SSE events ---
 
+/** SSE event data for `stream: "delta"` and `stream: "message"` responses. */
 export type SSEEvent =
-  | { event: "session_start"; sessionId: string }
+  | { event: "session_start"; sessionId: string } // PUT /session only
   | { event: "turn_start" }
-  | { event: "text_delta"; delta: string }
-  | { event: "thinking_delta"; delta: string }
-  | { event: "text"; text: string }
-  | { event: "thinking"; thinking: string }
-  | { event: "tool_call"; toolCallId: string; name: string; input: Record<string, unknown> }
-  | { event: "tool_result"; toolCallId: string; content: string | ContentBlock[] }
+  | { event: "text_delta"; delta: string } // delta mode only
+  | { event: "thinking_delta"; delta: string } // delta mode only
+  | { event: "text"; text: string } // message mode only
+  | { event: "thinking"; thinking: string } // message mode only
+  | {
+      event: "tool_call";
+      toolCallId: string;
+      name: string;
+      input: Record<string, unknown>;
+    }
+  | {
+      event: "tool_result";
+      toolCallId: string;
+      content: string | ContentBlock[];
+    } // server-side tools only
   | { event: "turn_stop"; stopReason: StopReason };
