@@ -20,13 +20,11 @@ export interface ServerHandler {
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse>;
   /** The last message in `req.messages` is guaranteed to be a user message. */
-  createSession(
-    req: CreateSessionRequest,
-  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
+  createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>>;
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest,
-  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
+  ): Promise<AgentResponse | AsyncIterable<SSEEvent>>;
   deleteSession(sessionId: string): Promise<void>;
 }
 

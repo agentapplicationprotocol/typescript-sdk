@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sseEventsToMessages(events)` utility to convert SSE event list to `HistoryMessage[]`
 - `resolvePendingToolUse(messages, clientTools?)` utility to classify pending tool calls into client-side and server-side
 
+### Fixed
+
+- `ServerHandler.createSession` and `sendTurn` return types corrected to `Promise<AgentResponse | AsyncIterable<SSEEvent>>`
+
 ### Removed
 
 - `writeSSEEvents` and `SSEStreamingApi` are no longer exported from the public API
