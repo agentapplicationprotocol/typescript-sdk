@@ -125,7 +125,4 @@ export class Server {
       return new Response(null, { status: 204 });
     });
   }
-
-  /** Returns the Hono fetch handler, ready to pass to any runtime (Node, Bun, Deno, etc.) */
-  fetch = (req: Request): Response | Promise<Response> => this.app.fetch(req);
 }

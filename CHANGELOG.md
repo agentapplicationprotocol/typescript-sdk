@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - `writeSSEEvents` and `SSEStreamingApi` are no longer exported from the public API
+- `Server.fetch` removed; use `server.app.fetch` directly
 
 ### Changed
 
