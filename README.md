@@ -11,6 +11,9 @@ TypeScript SDK for the [Agent Application Protocol (AAP)](https://github.com/age
 npm install @agentapplicationprotocol/sdk
 ```
 
-## [Examples](./src/examples/)
+## Examples
+
+- [Web playground](https://agentapplicationprotocol.github.io/playground/)
+- [Example agents](https://github.com/agentapplicationprotocol/agents)
 
 ## [CHANGELOG](./CHANGELOG.md)
