@@ -16,10 +16,15 @@ import {
 
 export interface ServerHandler {
   getMeta(): Promise<MetaResponse>;
-  createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
-  sendTurn(sessionId: string, req: SessionTurnRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
-  getSession(sessionId: string): Promise<SessionResponse>;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
+  getSession(sessionId: string): Promise<SessionResponse>;
+  createSession(
+    req: CreateSessionRequest,
+  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
+  sendTurn(
+    sessionId: string,
+    req: SessionTurnRequest,
+  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> | AsyncIterable<SSEEvent>;
   deleteSession(sessionId: string): Promise<void>;
 }
 
@@ -85,7 +90,9 @@ export class Server {
       const req = await c.req.json<CreateSessionRequest>();
       const result = await handler.createSession(req);
       if (isAsyncIterable(result)) {
-        return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
+        return streamSSE(c, (stream) =>
+          writeSSEEvents(stream, result as AsyncIterable<SSEEvent>),
+        );
       }
       return c.json(result as AgentResponse, 201);
     });
@@ -95,7 +102,9 @@ export class Server {
       const req = await c.req.json<SessionTurnRequest>();
       const result = await handler.sendTurn(c.req.param("id"), req);
       if (isAsyncIterable(result)) {
-        return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
+        return streamSSE(c, (stream) =>
+          writeSSEEvents(stream, result as AsyncIterable<SSEEvent>),
+        );
       }
       return c.json(result as AgentResponse);
     });
@@ -125,5 +134,9 @@ export class Server {
 }
 
 function isAsyncIterable(value: unknown): boolean {
-  return value != null && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === "function";
+  return (
+    value != null &&
+    typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] ===
+      "function"
+  );
 }
