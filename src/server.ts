@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
-import type { Context } from "hono";
 import type { SSEStreamingApi } from "hono/streaming";
+import type { Context } from "hono";
 import {
   AgentResponse,
   CreateSessionRequest,
@@ -31,9 +31,7 @@ export interface ServerHandler {
 
 // --- SSE helper ---
 
-export type { SSEStreamingApi };
-
-export async function writeSSEEvents(
+async function writeSSEEvents(
   stream: SSEStreamingApi,
   events: AsyncIterable<SSEEvent>,
 ): Promise<void> {

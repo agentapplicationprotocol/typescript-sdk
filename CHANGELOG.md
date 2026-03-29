@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Image capability: `AgentInfo.capabilities.image` (`http`, `data`)
 - `listAllSessions()` helper that auto-paginates all session IDs
 
+### Removed
+
+- `writeSSEEvents` and `SSEStreamingApi` are no longer exported from the public API
+
 ### Changed
 
 - `authenticate` option now receives the Hono `Context` as a second argument, enabling per-route auth logic (e.g. allowing unauthenticated `GET /meta`)
