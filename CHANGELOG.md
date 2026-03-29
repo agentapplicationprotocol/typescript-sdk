@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Image capability: `AgentInfo.capabilities.image` (`http`, `data`)
 - `listAllSessions()` helper that auto-paginates all session IDs
 - `createSession()` validates that the last message is a user message (client throws, server returns 400)
+- `sseEventsToMessages(events)` utility to convert SSE event list to `HistoryMessage[]`
+- `resolvePendingToolUse(messages, clientTools?)` utility to classify pending tool calls into client-side and server-side
 
 ### Removed
 

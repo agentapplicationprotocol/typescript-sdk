@@ -51,11 +51,7 @@ export interface ToolMessage {
 }
 
 /** A message that can appear in conversation history. */
-export type HistoryMessage =
-  | SystemMessage
-  | UserMessage
-  | AssistantMessage
-  | ToolMessage;
+export type HistoryMessage = SystemMessage | UserMessage | AssistantMessage | ToolMessage;
 
 /** Grants or denies permission for the server to invoke a tool on the client's behalf. */
 export interface ToolPermissionMessage {
@@ -170,12 +166,7 @@ export interface MetaResponse {
 // --- Session ---
 
 export type StreamMode = "delta" | "message" | "none";
-export type StopReason =
-  | "end_turn"
-  | "tool_use"
-  | "max_tokens"
-  | "refusal"
-  | "error";
+export type StopReason = "end_turn" | "tool_use" | "max_tokens" | "refusal" | "error";
 
 /** Agent configuration supplied with a request. */
 export interface AgentConfig {
@@ -244,6 +235,13 @@ export interface SessionListResponse {
 
 // --- SSE events ---
 
+/** A tool call emitted by the agent during a streaming turn. */
+export interface ToolCallEvent {
+  toolCallId: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
 /** SSE event data for `stream: "delta"` and `stream: "message"` responses. */
 export type SSEEvent =
   | { event: "session_start"; sessionId: string } // PUT /session only
@@ -252,12 +250,7 @@ export type SSEEvent =
   | { event: "thinking_delta"; delta: string } // delta mode only
   | { event: "text"; text: string } // message mode only
   | { event: "thinking"; thinking: string } // message mode only
-  | {
-      event: "tool_call";
-      toolCallId: string;
-      name: string;
-      input: Record<string, unknown>;
-    }
+  | ({ event: "tool_call" } & ToolCallEvent)
   | {
       event: "tool_result";
       toolCallId: string;
