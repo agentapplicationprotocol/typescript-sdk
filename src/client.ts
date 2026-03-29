@@ -32,14 +32,21 @@ export class Client {
 
   constructor({ baseUrl, apiKey }: ClientOptions) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
-    this.headers = { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` };
+    this.headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    };
   }
 
   private url(path: string): string {
     return `${this.baseUrl}${path}`;
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
     const res = await fetch(this.url(path), {
       method,
       headers: this.headers,
@@ -53,56 +60,11 @@ export class Client {
     return res.json() as Promise<T>;
   }
 
-  /** GET /meta */
-  getMeta(): Promise<MetaResponse> {
-    return this.request("GET", "/meta");
-  }
-
-  /** PUT /session — non-streaming */
-  createSession(req: CreateSessionRequest & { stream?: "none" }): Promise<AgentResponse>;
-  /** PUT /session — SSE streaming */
-  createSession(req: CreateSessionRequest & { stream: "delta" | "message" }): Promise<AsyncIterable<SSEEvent>>;
-  createSession(req: CreateSessionRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
-    if (req.stream === "delta" || req.stream === "message") {
-      return this.streamRequest("PUT", "/session", req);
-    }
-    return this.request("PUT", "/session", req);
-  }
-
-  /** POST /session/:id — non-streaming */
-  sendTurn(sessionId: string, req: SessionTurnRequest & { stream?: "none" }): Promise<AgentResponse>;
-  /** POST /session/:id — SSE streaming */
-  sendTurn(sessionId: string, req: SessionTurnRequest & { stream: "delta" | "message" }): Promise<AsyncIterable<SSEEvent>>;
-  sendTurn(sessionId: string, req: SessionTurnRequest): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
-    if (req.stream === "delta" || req.stream === "message") {
-      return this.streamRequest("POST", `/session/${sessionId}`, req);
-    }
-    return this.request("POST", `/session/${sessionId}`, req);
-  }
-
-  /** GET /session/:id */
-  getSession(sessionId: string): Promise<SessionResponse> {
-    return this.request("GET", `/session/${sessionId}`);
-  }
-
-  /** GET /sessions */
-  listSessions(params?: { limit?: number; after?: string }): Promise<SessionListResponse> {
-    let path = "/sessions";
-    if (params) {
-      const entries = Object.entries(params).filter((e): e is [string, string | number] => e[1] !== undefined);
-      if (entries.length > 0) {
-        path += "?" + new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString();
-      }
-    }
-    return this.request("GET", path);
-  }
-
-  /** DELETE /session/:id */
-  deleteSession(sessionId: string): Promise<void> {
-    return this.request("DELETE", `/session/${sessionId}`);
-  }
-
-  private async streamRequest(method: string, path: string, body: unknown): Promise<AsyncIterable<SSEEvent>> {
+  private async streamRequest(
+    method: string,
+    path: string,
+    body: unknown,
+  ): Promise<AsyncIterable<SSEEvent>> {
     const res = await fetch(this.url(path), {
       method,
       headers: { ...this.headers, Accept: "text/event-stream" },
@@ -114,9 +76,84 @@ export class Client {
     }
     return parseSSE(res.body);
   }
+
+  /** GET /meta */
+  getMeta(): Promise<MetaResponse> {
+    return this.request("GET", "/meta");
+  }
+
+  /** GET /sessions */
+  listSessions(params?: {
+    limit?: number;
+    after?: string;
+  }): Promise<SessionListResponse> {
+    let path = "/sessions";
+    if (params) {
+      const entries = Object.entries(params).filter(
+        (e): e is [string, string | number] => e[1] !== undefined,
+      );
+      if (entries.length > 0) {
+        path +=
+          "?" +
+          new URLSearchParams(
+            entries.map(([k, v]) => [k, String(v)]),
+          ).toString();
+      }
+    }
+    return this.request("GET", path);
+  }
+
+  /** GET /session/:id */
+  getSession(sessionId: string): Promise<SessionResponse> {
+    return this.request("GET", `/session/${sessionId}`);
+  }
+
+  /** PUT /session — non-streaming */
+  createSession(
+    req: CreateSessionRequest & { stream?: "none" },
+  ): Promise<AgentResponse>;
+  /** PUT /session — SSE streaming */
+  createSession(
+    req: CreateSessionRequest & { stream: "delta" | "message" },
+  ): Promise<AsyncIterable<SSEEvent>>;
+  createSession(
+    req: CreateSessionRequest,
+  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
+    if (req.stream === "delta" || req.stream === "message") {
+      return this.streamRequest("PUT", "/session", req);
+    }
+    return this.request("PUT", "/session", req);
+  }
+
+  /** POST /session/:id — non-streaming */
+  sendTurn(
+    sessionId: string,
+    req: SessionTurnRequest & { stream?: "none" },
+  ): Promise<AgentResponse>;
+  /** POST /session/:id — SSE streaming */
+  sendTurn(
+    sessionId: string,
+    req: SessionTurnRequest & { stream: "delta" | "message" },
+  ): Promise<AsyncIterable<SSEEvent>>;
+  sendTurn(
+    sessionId: string,
+    req: SessionTurnRequest,
+  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
+    if (req.stream === "delta" || req.stream === "message") {
+      return this.streamRequest("POST", `/session/${sessionId}`, req);
+    }
+    return this.request("POST", `/session/${sessionId}`, req);
+  }
+
+  /** DELETE /session/:id */
+  deleteSession(sessionId: string): Promise<void> {
+    return this.request("DELETE", `/session/${sessionId}`);
+  }
 }
 
-async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncIterable<SSEEvent> {
+async function* parseSSE(
+  body: ReadableStream<Uint8Array>,
+): AsyncIterable<SSEEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   const queue: SSEEvent[] = [];
