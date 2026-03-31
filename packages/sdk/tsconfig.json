@@ -9,5 +9,6 @@
       "@agentapplicationprotocol/server": ["../server/src/index.ts"]
     }
   },
+  "references": [{ "path": "../core" }, { "path": "../client" }, { "path": "../server" }],
   "include": ["src"]
 }
