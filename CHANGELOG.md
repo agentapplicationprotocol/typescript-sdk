@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DeltaSSEEvent` union type for `stream: "delta"` events
 - `MessageSSEEvent` union type for `stream: "message"` events
 - `AiModelProvider` in `@agentapplicationprotocol/server` — a `ModelProvider` implementation backed by any Vercel AI SDK `LanguageModel`
+- `Session` class in `@agentapplicationprotocol/client` — stateful client-side session with history accumulation, pending tool use resolution, and automatic deduplication of unchanged `tools`/`agent` overrides on `send()`
+- `PendingToolUse` type in `@agentapplicationprotocol/client` — returned by `Session.create()` and `Session.send()` to classify unresolved tool calls into `client` and `server` buckets
+- CLI example in `@agentapplicationprotocol/client` with `/stream`, `/enable`, `/disable`, `/trust`, `/set` commands and a built-in `calculate` client tool
 
 ### Changed
 

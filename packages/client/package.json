@@ -13,7 +13,8 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "example:cli": "tsx src/examples/cli.ts"
   },
   "dependencies": {
     "@agentapplicationprotocol/core": "workspace:*",
