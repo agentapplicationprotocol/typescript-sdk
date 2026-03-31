@@ -1,39 +1,21 @@
-import { z } from "zod";
 import {
+  HistoryMessage,
+  ToolPermissionMessage,
   AgentConfig,
-  AgentOption,
+  ToolSpec,
+  SSEEvent,
+  sseEventsToMessages,
   AgentResponse,
-  ContentBlock,
+  StopReason,
   CreateSessionRequest,
   CreateSessionResponse,
-  SessionResponse,
-  HistoryMessage,
-  JSONSchema,
-  AgentInfo,
   SessionTurnRequest,
-  SSEEvent,
-  StopReason,
   StreamMode,
-  ToolPermissionMessage,
-  ToolSpec,
+  ContentBlock,
+  SessionResponse,
 } from "@agentapplicationprotocol/core";
-import { sseEventsToMessages, sseEventsToMessagesAsync } from "@agentapplicationprotocol/core";
-
-/**
- * Base class for LLM backends. Subclasses must implement `stream`.
- * By default, `call` falls back to streaming mode, but overriding it with a
- * native non-streaming call is more efficient when the LLM supports it.
- */
-export abstract class ModelProvider {
-  /** Calls the LLM in streaming mode and yields SSE events as they arrive. */
-  abstract stream(history: HistoryMessage[], tools: ToolSpec[]): AsyncIterable<SSEEvent>;
-
-  /** Calls the LLM in non-streaming mode and returns a complete AgentResponse. Falls back to streaming if not overridden. */
-  async call(history: HistoryMessage[], tools: ToolSpec[]): Promise<AgentResponse> {
-    const [messages, stopReason] = await sseEventsToMessagesAsync(this.stream(history, tools));
-    return { messages, stopReason };
-  }
-}
+import { ModelProvider } from "./model";
+import { Agent } from "./agent";
 
 export type TurnMessages = (HistoryMessage | ToolPermissionMessage)[];
 
@@ -343,73 +325,5 @@ export class Session {
       agent: this.agentConfig,
       tools: this.clientTools.length ? this.clientTools : undefined,
     };
-  }
-}
-
-export class Agent {
-  info: AgentInfo;
-  tools: Map<string, (input: string) => Promise<string>> = new Map();
-
-  constructor(name: string, options?: { title?: string; description?: string; version?: string }) {
-    this.info = {
-      name,
-      title: options?.title,
-      description: options?.description,
-      version: options?.version ?? "1.0.0",
-      tools: [],
-      options: [],
-      capabilities: {
-        stream: {
-          delta: {},
-          message: {},
-          none: {},
-        },
-        application: {
-          tools: {},
-        },
-      },
-    };
-  }
-
-  option(opt: AgentOption): Agent {
-    this.info.options ??= [];
-    this.info.options.push(opt);
-    return this;
-  }
-
-  image(image: NonNullable<AgentInfo["capabilities"]>["image"]): Agent {
-    this.info.capabilities ??= {};
-    this.info.capabilities.image = image;
-    return this;
-  }
-
-  history(history: NonNullable<AgentInfo["capabilities"]>["history"]): Agent {
-    this.info.capabilities ??= {};
-    this.info.capabilities.history = history;
-    return this;
-  }
-
-  tool<I, O>(
-    name: string,
-    options: {
-      title?: string;
-      description?: string;
-      inputSchema: z.ZodType<I>;
-      outputSchema?: z.ZodType<O>;
-    },
-    exec: (input: I) => Promise<O>,
-  ): Agent {
-    this.info.tools ??= [];
-    this.info.tools.push({
-      name,
-      title: options.title,
-      description: options.description ?? "",
-      inputSchema: z.toJSONSchema(options.inputSchema) as JSONSchema,
-    });
-    this.tools.set(name, async (input: string) => {
-      const output = await exec(options.inputSchema.parse(JSON.parse(input)));
-      return JSON.stringify(options.outputSchema ? options.outputSchema.parse(output) : output);
-    });
-    return this;
   }
 }
