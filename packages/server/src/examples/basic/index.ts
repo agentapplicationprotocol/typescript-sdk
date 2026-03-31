@@ -13,7 +13,7 @@ import type {
   SessionTurnRequest,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
-import type { ServerHandler } from "../../server.js";
+import type { Handler } from "../../server.js";
 import { Session } from "../../session.js";
 
 /** In-memory session store. */
@@ -64,7 +64,7 @@ const agent = new Agent("basic-agent", {
     },
   );
 
-const handler: ServerHandler = {
+const handler: Handler = {
   getMeta() {
     return { version: 1, agents: [agent.info] };
   },

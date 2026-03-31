@@ -15,7 +15,7 @@ import {
 
 // --- Handler interface ---
 
-export interface ServerHandler {
+export interface Handler {
   getMeta(): MetaResponse;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse>;
@@ -75,7 +75,7 @@ function redactSecretOptions(session: SessionResponse, agents: AgentInfo[]): Ses
  * // with base path:
  * app.route('/api/v1', aap(handler))
  */
-export function aap(handler: ServerHandler): Hono {
+export function aap(handler: Handler): Hono {
   const router = new Hono();
 
   router.get("/meta", (c) => c.json(handler.getMeta()));

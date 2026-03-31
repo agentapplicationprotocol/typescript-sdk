@@ -14,7 +14,7 @@ import type {
   SessionTurnRequest,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
-import type { ServerHandler } from "../../server.js";
+import type { Handler } from "../../server.js";
 
 /** Agent definition with options, capabilities, and tools. */
 const agent = new Agent("compact-history-agent", {
@@ -62,7 +62,7 @@ const agent = new Agent("compact-history-agent", {
     },
   );
 
-const handler: ServerHandler = {
+const handler: Handler = {
   getMeta() {
     return { version: 1, agents: [agent.info] };
   },

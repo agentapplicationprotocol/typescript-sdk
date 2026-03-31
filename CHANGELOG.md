@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `@agentapplicationprotocol/sdk` — re-export umbrella (drop-in replacement for the old single package)
 - `ServerHandler.getMeta()` is now synchronous (`MetaResponse` instead of `Promise<MetaResponse>`)
 - **BREAKING**: `Server` class replaced by `aap(handler)` — returns a `Hono` app to compose with `app.route('/', aap(handler))`. Auth, CORS, and base path are handled by the outer app.
+- **BREAKING**: `ServerHandler` renamed to `Handler`.
 
 ## [0.3.1] - 2026-03-29
 

@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
 import { aap } from "./server";
-import type { ServerHandler } from "./server";
+import type { Handler } from "./server";
 import type {
   AgentResponse,
   MetaResponse,
@@ -24,7 +24,7 @@ async function* sseEvents(): AsyncIterable<SSEEvent> {
   yield { event: "turn_stop", stopReason: "end_turn" };
 }
 
-function makeHandler(overrides: Partial<ServerHandler> = {}): ServerHandler {
+function makeHandler(overrides: Partial<Handler> = {}): Handler {
   return {
     getMeta: vi.fn().mockReturnValue(meta),
     listSessions: vi.fn().mockResolvedValue(sessionList),
@@ -36,7 +36,7 @@ function makeHandler(overrides: Partial<ServerHandler> = {}): ServerHandler {
   };
 }
 
-function makeApp(handler: ServerHandler, setup?: (app: Hono) => void): Hono {
+function makeApp(handler: Handler, setup?: (app: Hono) => void): Hono {
   const app = new Hono();
   setup?.(app);
   app.route("/", aap(handler));
