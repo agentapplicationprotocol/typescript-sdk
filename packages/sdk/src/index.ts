@@ -1,3 +1,3 @@
 export * from "@agentapplicationprotocol/core";
-export * from "@agentapplicationprotocol/client";
-export * from "@agentapplicationprotocol/server";
+export * as client from "@agentapplicationprotocol/client";
+export * as server from "@agentapplicationprotocol/server";
