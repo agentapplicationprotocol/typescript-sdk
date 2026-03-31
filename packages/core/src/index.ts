@@ -1,2 +1,2 @@
-export { sseEventsToMessages, sseEventsToMessagesAsync, resolvePendingToolUse } from "./utils";
+export { sseEventsToMessages, sseEventsToMessagesAsync } from "./utils";
 export type * from "./types";
