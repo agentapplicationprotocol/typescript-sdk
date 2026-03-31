@@ -63,7 +63,7 @@ const agent = new Agent("basic-agent", {
   );
 
 const handler: ServerHandler = {
-  async getMeta() {
+  getMeta() {
     return { version: 1, agents: [agent.info] };
   },
 

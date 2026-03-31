@@ -23,7 +23,7 @@ async function* sseEvents(): AsyncIterable<SSEEvent> {
 
 function makeHandler(overrides: Partial<ServerHandler> = {}): ServerHandler {
   return {
-    getMeta: vi.fn().mockResolvedValue(meta),
+    getMeta: vi.fn().mockReturnValue(meta),
     listSessions: vi.fn().mockResolvedValue(sessionList),
     getSession: vi.fn().mockResolvedValue(session),
     createSession: vi.fn().mockResolvedValue(createSessionResponse),
@@ -77,7 +77,7 @@ describe("Server", () => {
     const server = new Server(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(secretSession),
-        getMeta: vi.fn().mockResolvedValue(secretMeta),
+        getMeta: vi.fn().mockReturnValue(secretMeta),
       }),
     );
     const res = await server.app.fetch(req("GET", "/session/s1"));
@@ -196,7 +196,7 @@ describe("Server", () => {
     const server = new Server(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
-        getMeta: vi.fn().mockResolvedValue({ version: 1, agents: [] }),
+        getMeta: vi.fn().mockReturnValue({ version: 1, agents: [] }),
       }),
     );
     const res = await server.app.fetch(req("GET", "/session/s1"));
@@ -217,7 +217,7 @@ describe("Server", () => {
     const server = new Server(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
-        getMeta: vi.fn().mockResolvedValue(metaNoSecrets),
+        getMeta: vi.fn().mockReturnValue(metaNoSecrets),
       }),
     );
     const res = await server.app.fetch(req("GET", "/session/s1"));

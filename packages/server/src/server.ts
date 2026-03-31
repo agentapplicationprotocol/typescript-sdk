@@ -18,7 +18,7 @@ import {
 // --- Handler interface ---
 
 export interface ServerHandler {
-  getMeta(): Promise<MetaResponse>;
+  getMeta(): MetaResponse;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse>;
   /** The last message in `req.messages` is guaranteed to be a user message. */
@@ -103,9 +103,8 @@ export class Server {
     });
 
     // GET /meta
-    router.get("/meta", async (c) => {
-      const meta = await handler.getMeta();
-      return c.json(meta);
+    router.get("/meta", (c) => {
+      return c.json(handler.getMeta());
     });
 
     // PUT /session
@@ -132,10 +131,8 @@ export class Server {
 
     // GET /session/:id
     router.get("/session/:id", async (c) => {
-      const [session, meta] = await Promise.all([
-        handler.getSession(c.req.param("id")),
-        handler.getMeta(),
-      ]);
+      const session = await handler.getSession(c.req.param("id"));
+      const meta = handler.getMeta();
       return c.json(redactSecretOptions(session, meta.agents));
     });
 

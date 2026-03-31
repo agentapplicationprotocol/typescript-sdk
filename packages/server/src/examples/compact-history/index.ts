@@ -61,7 +61,7 @@ const agent = new Agent("compact-history-agent", {
   );
 
 const handler: ServerHandler = {
-  async getMeta() {
+  getMeta() {
     return { version: 1, agents: [agent.info] };
   },
 
