@@ -129,7 +129,7 @@ function toAAPEvent(part: TextStreamPart<any>): DeltaSSEEvent | undefined {
       event: "tool_call" as const,
       toolCallId: part.toolCallId,
       name: part.toolName,
-      input: JSON.stringify(part.input) as unknown as Record<string, unknown>,
+      input: part.input as Record<string, unknown>,
     };
   } else if (part.type === "finish") {
     return {
