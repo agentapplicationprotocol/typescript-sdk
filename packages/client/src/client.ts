@@ -8,7 +8,7 @@ import {
   SessionResponse,
   SessionTurnRequest,
   SSEEvent,
-} from "./types";
+} from "@agentapplicationprotocol/core";
 
 export interface ClientOptions {
   baseUrl: string;

@@ -9,9 +9,9 @@ describe("sseEventsToMessages", () => {
       { event: "text", text: "hello" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
-    expect(sseEventsToMessages(events)).toEqual([
-      { role: "assistant", content: [{ type: "text", text: "hello" }] },
-    ]);
+    const [messages, stopReason] = sseEventsToMessages(events);
+    expect(messages).toEqual([{ role: "assistant", content: [{ type: "text", text: "hello" }] }]);
+    expect(stopReason).toBe("end_turn");
   });
 
   it("accumulates text_delta into text block", () => {
@@ -20,9 +20,9 @@ describe("sseEventsToMessages", () => {
       { event: "text_delta", delta: "lo" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
-    expect(sseEventsToMessages(events)).toEqual([
-      { role: "assistant", content: [{ type: "text", text: "hello" }] },
-    ]);
+    const [messages, stopReason] = sseEventsToMessages(events);
+    expect(messages).toEqual([{ role: "assistant", content: [{ type: "text", text: "hello" }] }]);
+    expect(stopReason).toBe("end_turn");
   });
 
   it("accumulates thinking_delta into thinking block", () => {
@@ -31,9 +31,11 @@ describe("sseEventsToMessages", () => {
       { event: "thinking_delta", delta: "king" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
-    expect(sseEventsToMessages(events)).toEqual([
+    const [messages, stopReason] = sseEventsToMessages(events);
+    expect(messages).toEqual([
       { role: "assistant", content: [{ type: "thinking", thinking: "thinking" }] },
     ]);
+    expect(stopReason).toBe("end_turn");
   });
 
   it("converts thinking event to thinking block", () => {
@@ -41,23 +43,26 @@ describe("sseEventsToMessages", () => {
       { event: "thinking", thinking: "deep thought" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
-    expect(sseEventsToMessages(events)).toEqual([
+    const [messages, stopReason] = sseEventsToMessages(events);
+    expect(messages).toEqual([
       { role: "assistant", content: [{ type: "thinking", thinking: "deep thought" }] },
     ]);
+    expect(stopReason).toBe("end_turn");
   });
 
   it("flushes assistant message before tool_result", () => {
     const events: SSEEvent[] = [
       { event: "tool_call", toolCallId: "c1", name: "search", input: { q: "x" } },
       { event: "tool_result", toolCallId: "c1", content: "result" },
-      { event: "turn_stop", stopReason: "end_turn" },
+      { event: "turn_stop", stopReason: "tool_use" },
     ];
-    const messages = sseEventsToMessages(events);
+    const [messages, stopReason] = sseEventsToMessages(events);
     expect(messages).toContainEqual({
       role: "assistant",
       content: [{ type: "tool_use", toolCallId: "c1", name: "search", input: { q: "x" } }],
     });
     expect(messages).toContainEqual({ role: "tool", toolCallId: "c1", content: "result" });
+    expect(stopReason).toBe("tool_use");
   });
 
   it("flushes delta accumulators when non-delta event arrives", () => {
@@ -66,12 +71,13 @@ describe("sseEventsToMessages", () => {
       { event: "tool_call", toolCallId: "c1", name: "fn", input: {} },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
-    const messages = sseEventsToMessages(events);
+    const [messages, stopReason] = sseEventsToMessages(events);
     const assistant = messages.find((m) => m.role === "assistant");
     expect(Array.isArray(assistant?.content) && assistant.content[0]).toEqual({
       type: "text",
       text: "hi",
     });
+    expect(stopReason).toBe("end_turn");
   });
 
   it("returns empty array for events with no content", () => {
@@ -79,7 +85,9 @@ describe("sseEventsToMessages", () => {
       { event: "turn_start" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
-    expect(sseEventsToMessages(events)).toEqual([]);
+    const [messages, stopReason] = sseEventsToMessages(events);
+    expect(messages).toEqual([]);
+    expect(stopReason).toBe("end_turn");
   });
 });
 

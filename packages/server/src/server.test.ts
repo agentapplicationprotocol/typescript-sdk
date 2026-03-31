@@ -7,7 +7,7 @@ import type {
   SessionListResponse,
   SessionResponse,
   SSEEvent,
-} from "./types";
+} from "@agentapplicationprotocol/core";
 
 const meta: MetaResponse = { version: 1, agents: [] };
 const session: SessionResponse = { sessionId: "s1", agent: { name: "a" } };

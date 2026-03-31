@@ -9,13 +9,13 @@ import {
   ToolSet,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import {
-  ModelProvider,
+import { ModelProvider } from "../server_new.js";
+import type {
   SSEEvent,
-  type HistoryMessage,
-  type StopReason,
-  type ToolSpec,
-} from "../..";
+  HistoryMessage,
+  StopReason,
+  ToolSpec,
+} from "@agentapplicationprotocol/core";
 
 /**
  * Converts AAP `HistoryMessage[]` to the AI SDK message format.

@@ -7,7 +7,7 @@ import type {
   SessionListResponse,
   SessionResponse,
   SSEEvent,
-} from "./types";
+} from "@agentapplicationprotocol/core";
 
 const BASE_URL = "https://example.com";
 const API_KEY = "test-key";

@@ -9,8 +9,8 @@ import type {
   CreateSessionResponse,
   SessionTurnRequest,
   SSEEvent,
-  ServerHandler,
-} from "../../";
+} from "@agentapplicationprotocol/core";
+import type { ServerHandler } from "../../server.js";
 
 const agent = new Agent("ai-sdk-agent", {
   version: "0.1.0",

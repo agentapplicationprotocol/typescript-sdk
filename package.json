@@ -1,37 +1,18 @@
 {
-  "name": "@agentapplicationprotocol/sdk",
-  "version": "0.3.1",
-  "description": "TypeScript SDK for the Agent Application Protocol (AAP)",
-  "license": "Apache-2.0",
-  "files": [
-    "dist",
-    "!dist/**/*.test.js",
-    "!dist/**/*.test.d.ts"
-  ],
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "name": "aap-ts",
+  "private": true,
   "scripts": {
-    "build": "tsc",
-    "test": "vitest run --exclude 'dist/**'",
-    "prepare": "husky",
-    "dev": "tsc --watch"
-  },
-  "dependencies": {
-    "eventsource-parser": "^3.0.6",
-    "hono": "^4.12.8",
-    "zod": "^4.3.6"
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "dev": "pnpm -r dev",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@ai-sdk/openai": "^3.0.48",
-    "@hono/node-server": "^1.19.12",
-    "@types/json-schema": "^7.0.15",
     "@types/node": "^25.5.0",
     "@vitest/coverage-v8": "^4.1.2",
-    "ai": "^6.0.141",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "oxfmt": "^0.42.0",
-    "tsx": "^4.21.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.2"
   },

@@ -16,8 +16,8 @@ import {
   StreamMode,
   ToolPermissionMessage,
   ToolSpec,
-} from "./types";
-import { sseEventsToMessages, sseEventsToMessagesAsync } from "./utils";
+} from "@agentapplicationprotocol/core";
+import { sseEventsToMessages, sseEventsToMessagesAsync } from "@agentapplicationprotocol/core";
 
 /**
  * Base class for LLM backends. Subclasses must implement `stream`.

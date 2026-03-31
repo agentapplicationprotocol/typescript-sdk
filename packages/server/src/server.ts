@@ -13,7 +13,7 @@ import {
   SessionResponse,
   SessionTurnRequest,
   SSEEvent,
-} from "./types";
+} from "@agentapplicationprotocol/core";
 
 // --- Handler interface ---
 

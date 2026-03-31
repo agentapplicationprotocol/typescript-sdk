@@ -1,8 +1,8 @@
-import type { AgentResponse, HistoryMessage, SSEEvent } from "../../index.js";
-import { Session } from "../../server_new.js";
+import type { AgentResponse, HistoryMessage, SSEEvent } from "@agentapplicationprotocol/core";
+import { Session } from "../server_new.js";
 import { AiSDK } from "./llm.js";
-import type { Agent } from "../../server_new.js";
-import type { AgentConfig, ToolSpec } from "../../index.js";
+import type { Agent } from "../server_new.js";
+import type { AgentConfig, ToolSpec } from "@agentapplicationprotocol/core";
 
 export const sessions = new Map<string, AiSDKSession>();
 
