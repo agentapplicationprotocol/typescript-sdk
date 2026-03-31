@@ -1,5 +1,5 @@
-export { Server } from "./server";
-export type { ServerHandler, ServerOptions } from "./server";
+export { aap } from "./server";
+export type { ServerHandler } from "./server";
 export { ModelProvider, AiModelProvider } from "./model";
 export { Session } from "./session";
 export type { TurnMessages } from "./session";

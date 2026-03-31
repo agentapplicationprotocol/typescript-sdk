@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { Server } from "./server";
+import { Hono } from "hono";
+import { bearerAuth } from "hono/bearer-auth";
+import { cors } from "hono/cors";
+import { aap } from "./server";
 import type { ServerHandler } from "./server";
 import type {
   AgentResponse,
@@ -33,6 +36,13 @@ function makeHandler(overrides: Partial<ServerHandler> = {}): ServerHandler {
   };
 }
 
+function makeApp(handler: ServerHandler, setup?: (app: Hono) => void): Hono {
+  const app = new Hono();
+  setup?.(app);
+  app.route("/", aap(handler));
+  return app;
+}
+
 function req(method: string, path: string, body?: unknown, headers?: Record<string, string>) {
   return new Request(`http://localhost${path}`, {
     method,
@@ -41,17 +51,17 @@ function req(method: string, path: string, body?: unknown, headers?: Record<stri
   });
 }
 
-describe("Server", () => {
+describe("aap middleware", () => {
   it("GET /meta returns meta", async () => {
-    const server = new Server(makeHandler());
-    const res = await server.app.fetch(req("GET", "/meta"));
+    const app = makeApp(makeHandler());
+    const res = await app.fetch(req("GET", "/meta"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(meta);
   });
 
   it("GET /session/:id returns session", async () => {
-    const server = new Server(makeHandler());
-    const res = await server.app.fetch(req("GET", "/session/s1"));
+    const app = makeApp(makeHandler());
+    const res = await app.fetch(req("GET", "/session/s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(session);
   });
@@ -74,13 +84,13 @@ describe("Server", () => {
         },
       ],
     };
-    const server = new Server(
+    const app = makeApp(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(secretSession),
         getMeta: vi.fn().mockReturnValue(secretMeta),
       }),
     );
-    const res = await server.app.fetch(req("GET", "/session/s1"));
+    const res = await app.fetch(req("GET", "/session/s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       ...secretSession,
@@ -90,16 +100,16 @@ describe("Server", () => {
 
   it("GET /sessions returns session list", async () => {
     const handler = makeHandler();
-    const server = new Server(handler);
-    const res = await server.app.fetch(req("GET", "/sessions?after=cursor1"));
+    const app = makeApp(handler);
+    const res = await app.fetch(req("GET", "/sessions?after=cursor1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(sessionList);
     expect(handler.listSessions).toHaveBeenCalledWith({ after: "cursor1" });
   });
 
   it("PUT /session returns 400 if last message is not a user message", async () => {
-    const server = new Server(makeHandler());
-    const res = await server.app.fetch(
+    const app = makeApp(makeHandler());
+    const res = await app.fetch(
       req("PUT", "/session", {
         agent: { name: "a" },
         messages: [{ role: "assistant", content: "hi" }],
@@ -109,8 +119,8 @@ describe("Server", () => {
   });
 
   it("PUT /session returns 201 with AgentResponse", async () => {
-    const server = new Server(makeHandler());
-    const res = await server.app.fetch(
+    const app = makeApp(makeHandler());
+    const res = await app.fetch(
       req("PUT", "/session", { agent: { name: "a" }, messages: [{ role: "user", content: "hi" }] }),
     );
     expect(res.status).toBe(201);
@@ -118,10 +128,8 @@ describe("Server", () => {
   });
 
   it("PUT /session with stream returns SSE", async () => {
-    const server = new Server(
-      makeHandler({ createSession: vi.fn().mockResolvedValue(sseEvents()) }),
-    );
-    const res = await server.app.fetch(
+    const app = makeApp(makeHandler({ createSession: vi.fn().mockResolvedValue(sseEvents()) }));
+    const res = await app.fetch(
       req("PUT", "/session", {
         agent: { name: "a" },
         messages: [{ role: "user", content: "hi" }],
@@ -133,8 +141,8 @@ describe("Server", () => {
   });
 
   it("POST /session/:id returns AgentResponse", async () => {
-    const server = new Server(makeHandler());
-    const res = await server.app.fetch(
+    const app = makeApp(makeHandler());
+    const res = await app.fetch(
       req("POST", "/session/s1", { messages: [{ role: "user", content: "hi" }] }),
     );
     expect(res.status).toBe(200);
@@ -142,8 +150,8 @@ describe("Server", () => {
   });
 
   it("POST /session/:id with stream returns SSE", async () => {
-    const server = new Server(makeHandler({ sendTurn: vi.fn().mockResolvedValue(sseEvents()) }));
-    const res = await server.app.fetch(
+    const app = makeApp(makeHandler({ sendTurn: vi.fn().mockResolvedValue(sseEvents()) }));
+    const res = await app.fetch(
       req("POST", "/session/s1", { messages: [{ role: "user", content: "hi" }], stream: "delta" }),
     );
     expect(res.status).toBe(200);
@@ -151,41 +159,34 @@ describe("Server", () => {
   });
 
   it("DELETE /session/:id returns 204", async () => {
-    const server = new Server(makeHandler());
-    const res = await server.app.fetch(req("DELETE", "/session/s1"));
+    const app = makeApp(makeHandler());
+    const res = await app.fetch(req("DELETE", "/session/s1"));
     expect(res.status).toBe(204);
   });
 
-  it("authenticate: returns 401 when rejected", async () => {
-    const server = new Server(makeHandler(), { authenticate: () => false });
-    const res = await server.app.fetch(req("GET", "/meta"));
+  it("auth middleware: returns 401 when rejected", async () => {
+    const app = makeApp(makeHandler(), (a) => a.use(bearerAuth({ token: "secret" })));
+    const res = await app.fetch(req("GET", "/meta"));
     expect(res.status).toBe(401);
   });
 
-  it("authenticate: passes apiKey and context", async () => {
-    const authenticate = vi.fn().mockReturnValue(true);
-    const server = new Server(makeHandler(), { authenticate });
-    await server.app.fetch(req("GET", "/meta", undefined, { Authorization: "Bearer mykey" }));
-    expect(authenticate).toHaveBeenCalledWith(
-      "mykey",
-      expect.objectContaining({ req: expect.anything() }),
-    );
-  });
-
-  it("authenticate: allows per-route logic", async () => {
-    const server = new Server(makeHandler(), {
-      authenticate: (_, c) => c.req.path === "/meta",
-    });
-    const metaRes = await server.app.fetch(req("GET", "/meta"));
-    expect(metaRes.status).toBe(200);
-    const sessRes = await server.app.fetch(req("GET", "/session/s1"));
-    expect(sessRes.status).toBe(401);
-  });
-
-  it("base path prefixes all routes", async () => {
-    const server = new Server(makeHandler(), { base: "/api/v1" });
-    const res = await server.app.fetch(req("GET", "/api/v1/meta"));
+  it("auth middleware: passes with valid token", async () => {
+    const app = makeApp(makeHandler(), (a) => a.use(bearerAuth({ token: "secret" })));
+    const res = await app.fetch(req("GET", "/meta", undefined, { Authorization: "Bearer secret" }));
     expect(res.status).toBe(200);
+  });
+
+  it("base path: mounts under sub-router", async () => {
+    const app = new Hono();
+    app.route("/api/v1", aap(makeHandler()));
+    const res = await app.fetch(req("GET", "/api/v1/meta"));
+    expect(res.status).toBe(200);
+  });
+
+  it("cors: sets Access-Control-Allow-Origin header", async () => {
+    const app = makeApp(makeHandler(), (a) => a.use(cors({ origin: "https://example.com" })));
+    const res = await app.fetch(req("GET", "/meta", undefined, { Origin: "https://example.com" }));
+    expect(res.headers.get("access-control-allow-origin")).toBe("https://example.com");
   });
 
   it("GET /session/:id does not redact when agent not found in meta", async () => {
@@ -193,13 +194,13 @@ describe("Server", () => {
       sessionId: "s1",
       agent: { name: "unknown", options: { key: "secret" } },
     };
-    const server = new Server(
+    const app = makeApp(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
         getMeta: vi.fn().mockReturnValue({ version: 1, agents: [] }),
       }),
     );
-    const res = await server.app.fetch(req("GET", "/session/s1"));
+    const res = await app.fetch(req("GET", "/session/s1"));
     expect(await res.json()).toEqual(sessionWithOptions);
   });
 
@@ -208,27 +209,22 @@ describe("Server", () => {
       sessionId: "s1",
       agent: { name: "a", options: { model: "gpt-4" } },
     };
-    const metaNoSecrets: MetaResponse = {
-      version: 1,
-      agents: [
-        { name: "a", version: "1.0.0", options: [{ type: "text", name: "model", default: "" }] },
-      ],
-    };
-    const server = new Server(
+    const app = makeApp(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
-        getMeta: vi.fn().mockReturnValue(metaNoSecrets),
+        getMeta: vi.fn().mockReturnValue({
+          version: 1,
+          agents: [
+            {
+              name: "a",
+              version: "1.0.0",
+              options: [{ type: "text", name: "model", default: "" }],
+            },
+          ],
+        }),
       }),
     );
-    const res = await server.app.fetch(req("GET", "/session/s1"));
+    const res = await app.fetch(req("GET", "/session/s1"));
     expect(await res.json()).toEqual(sessionWithOptions);
-  });
-
-  it("cors: sets Access-Control-Allow-Origin header", async () => {
-    const server = new Server(makeHandler(), { cors: "https://example.com" });
-    const res = await server.app.fetch(
-      req("GET", "/meta", undefined, { Origin: "https://example.com" }),
-    );
-    expect(res.headers.get("access-control-allow-origin")).toBe("https://example.com");
   });
 });

@@ -1,8 +1,6 @@
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import type { SSEStreamingApi } from "hono/streaming";
-import type { Context } from "hono";
 import {
   AgentInfo,
   AgentResponse,
@@ -62,91 +60,61 @@ function redactSecretOptions(session: SessionResponse, agents: AgentInfo[]): Ses
   };
 }
 
-// --- Server ---
+// --- aap ---
 
-export interface ServerOptions {
-  /**
-   * Called on every request to authenticate. Return false to reject.
-   * Use `c.req.path` to allow unauthenticated access to specific routes.
-   * @example
-   * // Allow unauthenticated access to GET /meta
-   * authenticate: (apiKey, c) => c.req.path === "/meta" || apiKey === "secret"
-   */
-  authenticate?: (apiKey: string, c: Context) => boolean | Promise<boolean>;
-  /** CORS origin(s) to allow. Disabled by default. */
-  cors?: string | string[];
-  /** Base path to mount all routes under, e.g. "/api/v1". */
-  base?: string;
-}
+/**
+ * Returns a Hono app with all AAP endpoints mounted.
+ * Use with `app.route()` to compose it into your app, optionally under a base path.
+ * Apply auth, CORS, and other middleware to your outer app before routing.
+ *
+ * @example
+ * const app = new Hono()
+ * app.use(bearerAuth({ token: 'secret' }))
+ * app.route('/', aap(handler))
+ *
+ * // with base path:
+ * app.route('/api/v1', aap(handler))
+ */
+export function aap(handler: ServerHandler): Hono {
+  const router = new Hono();
 
-export class Server {
-  readonly app: Hono;
+  router.get("/meta", (c) => c.json(handler.getMeta()));
 
-  constructor(handler: ServerHandler, options: ServerOptions = {}) {
-    this.app = new Hono();
-    const { authenticate } = options;
-    const router = options.base ? this.app.basePath(options.base) : this.app;
-
-    if (options.cors !== undefined) {
-      router.use("*", cors({ origin: options.cors }));
+  router.put("/session", async (c) => {
+    const req = await c.req.json<CreateSessionRequest>();
+    if (req.messages.at(-1)?.role !== "user")
+      return c.json({ error: "Last message must be a user message" }, 400);
+    const result = await handler.createSession(req);
+    if (req.stream === "delta" || req.stream === "message") {
+      return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
     }
+    return c.json(result as CreateSessionResponse, 201);
+  });
 
-    const getApiKey = (authHeader: string | undefined): string =>
-      authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  router.post("/session/:id", async (c) => {
+    const req = await c.req.json<SessionTurnRequest>();
+    const result = await handler.sendTurn(c.req.param("id"), req);
+    if (req.stream === "delta" || req.stream === "message") {
+      return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
+    }
+    return c.json(result as AgentResponse);
+  });
 
-    // Auth middleware for all routes
-    router.use("*", async (c, next) => {
-      if (!authenticate) return next();
-      const apiKey = getApiKey(c.req.header("Authorization"));
-      if (!(await authenticate(apiKey, c))) return c.json({ error: "Unauthorized" }, 401);
-      return next();
-    });
+  router.get("/session/:id", async (c) => {
+    const session = await handler.getSession(c.req.param("id"));
+    const meta = handler.getMeta();
+    return c.json(redactSecretOptions(session, meta.agents));
+  });
 
-    // GET /meta
-    router.get("/meta", (c) => {
-      return c.json(handler.getMeta());
-    });
+  router.get("/sessions", async (c) => {
+    const after = c.req.query("after");
+    return c.json(await handler.listSessions({ after }));
+  });
 
-    // PUT /session
-    router.put("/session", async (c) => {
-      const req = await c.req.json<CreateSessionRequest>();
-      if (req.messages.at(-1)?.role !== "user")
-        return c.json({ error: "Last message must be a user message" }, 400);
-      const result = await handler.createSession(req);
-      if (req.stream === "delta" || req.stream === "message") {
-        return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
-      }
-      return c.json(result as CreateSessionResponse, 201);
-    });
+  router.delete("/session/:id", async (c) => {
+    await handler.deleteSession(c.req.param("id"));
+    return new Response(null, { status: 204 });
+  });
 
-    // POST /session/:id
-    router.post("/session/:id", async (c) => {
-      const req = await c.req.json<SessionTurnRequest>();
-      const result = await handler.sendTurn(c.req.param("id"), req);
-      if (req.stream === "delta" || req.stream === "message") {
-        return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
-      }
-      return c.json(result as AgentResponse);
-    });
-
-    // GET /session/:id
-    router.get("/session/:id", async (c) => {
-      const session = await handler.getSession(c.req.param("id"));
-      const meta = handler.getMeta();
-      return c.json(redactSecretOptions(session, meta.agents));
-    });
-
-    // GET /sessions
-    router.get("/sessions", async (c) => {
-      const after = c.req.query("after");
-      const result = await handler.listSessions({ after });
-      return c.json(result);
-    });
-
-    // DELETE /session/:id
-    router.delete("/session/:id", async (c) => {
-      await handler.deleteSession(c.req.param("id"));
-      return new Response(null, { status: 204 });
-    });
-  }
+  return router;
 }

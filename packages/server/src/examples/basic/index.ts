@@ -1,7 +1,9 @@
 import { serve } from "@hono/node-server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { Server } from "../../server.js";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { aap } from "../../server.js";
 import { Agent } from "../../agent.js";
 import { AiModelProvider } from "../../model.js";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -110,6 +112,8 @@ const handler: ServerHandler = {
 };
 
 const port = Number(process.env.PORT ?? 3010);
-const server = new Server(handler, { cors: "*" });
-serve({ fetch: server.app.fetch, port });
+const app = new Hono();
+app.use("*", cors({ origin: "*" }));
+app.route("/", aap(handler));
+serve({ fetch: app.fetch, port });
 console.log(`basic-agent running on http://localhost:${port}`);
