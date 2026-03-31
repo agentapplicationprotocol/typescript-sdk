@@ -7,21 +7,35 @@ export type JSONSchema = JSONSchema7;
 
 // --- Content blocks ---
 
+export interface TextContentBlock {
+  type: "text";
+  text: string;
+}
+
+export interface ThinkingContentBlock {
+  type: "thinking";
+  thinking: string;
+}
+
+export interface ToolUseContentBlock {
+  type: "tool_use";
+  toolCallId: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+export interface ImageContentBlock {
+  type: "image";
+  /** Supports `https://` URLs and `data:` URIs (base64). */
+  url: string;
+}
+
 /** A single block of content within a message. */
 export type ContentBlock =
-  | { type: "text"; text: string }
-  | { type: "thinking"; thinking: string }
-  | {
-      type: "tool_use";
-      toolCallId: string;
-      name: string;
-      input: Record<string, unknown>;
-    }
-  | {
-      type: "image";
-      /** Supports `https://` URLs and `data:` URIs (base64). */
-      url: string;
-    };
+  | TextContentBlock
+  | ThinkingContentBlock
+  | ToolUseContentBlock
+  | ImageContentBlock;
 
 // --- Messages ---
 
@@ -83,30 +97,33 @@ export interface ServerToolRef {
 
 // --- Agent options ---
 
+export interface TextAgentOption {
+  type: "text";
+  name: string;
+  title?: string;
+  description?: string;
+  default: string;
+}
+
+export interface SecretAgentOption {
+  type: "secret";
+  name: string;
+  title?: string;
+  description?: string;
+  default: string;
+}
+
+export interface SelectAgentOption {
+  type: "select";
+  name: string;
+  title?: string;
+  description?: string;
+  options: string[];
+  default: string;
+}
+
 /** A configurable option the client may set per request. */
-export type AgentOption =
-  | {
-      type: "text";
-      name: string;
-      title?: string;
-      description?: string;
-      default: string;
-    }
-  | {
-      type: "secret";
-      name: string;
-      title?: string;
-      description?: string;
-      default: string;
-    }
-  | {
-      type: "select";
-      name: string;
-      title?: string;
-      description?: string;
-      options: string[];
-      default: string;
-    };
+export type AgentOption = TextAgentOption | SecretAgentOption | SelectAgentOption;
 
 // --- Meta ---
 
@@ -244,18 +261,76 @@ export interface ToolCallEvent {
   input: Record<string, unknown>;
 }
 
+export interface SessionStartEvent {
+  event: "session_start";
+  sessionId: string;
+}
+
+export interface TurnStartEvent {
+  event: "turn_start";
+}
+
+export interface TextDeltaEvent {
+  event: "text_delta";
+  delta: string;
+}
+
+export interface ThinkingDeltaEvent {
+  event: "thinking_delta";
+  delta: string;
+}
+
+export interface TextEvent {
+  event: "text";
+  text: string;
+}
+
+export interface ThinkingEvent {
+  event: "thinking";
+  thinking: string;
+}
+
+export interface ToolCallSSEEvent extends ToolCallEvent {
+  event: "tool_call";
+}
+
+export interface ToolResultEvent {
+  event: "tool_result";
+  toolCallId: string;
+  content: string | ContentBlock[];
+}
+
+export interface TurnStopEvent {
+  event: "turn_stop";
+  stopReason: StopReason;
+}
+
 /** SSE event data for `stream: "delta"` and `stream: "message"` responses. */
 export type SSEEvent =
-  | { event: "session_start"; sessionId: string } // PUT /session only
-  | { event: "turn_start" }
-  | { event: "text_delta"; delta: string } // delta mode only
-  | { event: "thinking_delta"; delta: string } // delta mode only
-  | { event: "text"; text: string } // message mode only
-  | { event: "thinking"; thinking: string } // message mode only
-  | ({ event: "tool_call" } & ToolCallEvent)
-  | {
-      event: "tool_result";
-      toolCallId: string;
-      content: string | ContentBlock[];
-    } // server-side tools only
-  | { event: "turn_stop"; stopReason: StopReason };
+  | SessionStartEvent // PUT /session only
+  | TurnStartEvent
+  | TextDeltaEvent // delta mode only
+  | ThinkingDeltaEvent // delta mode only
+  | TextEvent // message mode only
+  | ThinkingEvent // message mode only
+  | ToolCallSSEEvent
+  | ToolResultEvent // server-side tools only
+  | TurnStopEvent;
+
+/** Events emitted in `stream: "delta"` mode. */
+export type DeltaSSEEvent =
+  | TurnStartEvent
+  | TextDeltaEvent
+  | ThinkingDeltaEvent
+  | ToolCallSSEEvent
+  | ToolResultEvent
+  | TurnStopEvent;
+
+/** Events emitted in `stream: "message"` mode. */
+export type MessageSSEEvent =
+  | TurnStartEvent
+  | TextEvent
+  | ThinkingEvent
+  | ToolCallSSEEvent
+  | ToolResultEvent
+  | TurnStopEvent;

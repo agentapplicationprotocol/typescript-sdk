@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Named variant types for `ContentBlock`: `TextContentBlock`, `ThinkingContentBlock`, `ToolUseContentBlock`, `ImageContentBlock`
+- Named variant types for `AgentOption`: `TextAgentOption`, `SecretAgentOption`, `SelectAgentOption`
+- Named variant types for `SSEEvent`: `SessionStartEvent`, `TurnStartEvent`, `TextDeltaEvent`, `ThinkingDeltaEvent`, `TextEvent`, `ThinkingEvent`, `ToolCallSSEEvent`, `ToolResultEvent`, `TurnStopEvent`
+- `DeltaSSEEvent` union type for `stream: "delta"` events
+- `MessageSSEEvent` union type for `stream: "message"` events
+
 ### Changed
 
 - **BREAKING**: Restructured as a pnpm monorepo with four packages:
