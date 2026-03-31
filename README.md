@@ -5,6 +5,15 @@
 
 TypeScript SDK for the [Agent Application Protocol (AAP)](https://github.com/agentapplicationprotocol/agent-application-protocol).
 
+## Packages
+
+| Package                                                 | Description                                |
+| ------------------------------------------------------- | ------------------------------------------ |
+| [`@agentapplicationprotocol/sdk`](./packages/sdk)       | Umbrella package — re-exports all packages |
+| [`@agentapplicationprotocol/core`](./packages/core)     | Shared types and utilities                 |
+| [`@agentapplicationprotocol/client`](./packages/client) | AAP client                                 |
+| [`@agentapplicationprotocol/server`](./packages/server) | AAP server                                 |
+
 ## Installation
 
 ```bash
@@ -14,6 +23,7 @@ npm install @agentapplicationprotocol/sdk
 ## Examples
 
 - [Web playground](https://agentapplicationprotocol.github.io/playground/)
-- [Example agents](https://github.com/agentapplicationprotocol/agents)
+- [Server examples](./packages/server/src/examples)
+- [Client examples](./packages/client/src/examples)
 
 ## [CHANGELOG](./CHANGELOG.md)
