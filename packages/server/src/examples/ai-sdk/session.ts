@@ -39,7 +39,7 @@ export class AiSDKSession extends Session {
     super(
       sessionId,
       agent,
-      new AiModelProvider(openai(agentConfig.options?.model ?? "gpt-4o")),
+      new AiModelProvider(openai.chat(agentConfig.options?.model ?? "gpt-4o")),
       agentConfig,
       clientTools,
     );

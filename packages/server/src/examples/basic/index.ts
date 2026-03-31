@@ -77,7 +77,7 @@ const handler: ServerHandler = {
       baseURL: req.agent.options?.baseURL || undefined,
       apiKey: req.agent.options?.apiKey || undefined,
     });
-    const model = new AiModelProvider(openai(req.agent.options?.model ?? "gpt-4o"));
+    const model = new AiModelProvider(openai.chat(req.agent.options?.model ?? "gpt-4o"));
     const session = new Session(sessionId, agent, model, req.agent, req.tools);
 
     sessions.set(sessionId, session);
