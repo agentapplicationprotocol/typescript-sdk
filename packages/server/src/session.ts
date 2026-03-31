@@ -19,6 +19,7 @@ import {
 import { ModelProvider } from "./model";
 import { Agent } from "./agent";
 
+/** Messages accepted as input to a turn: regular history messages or client-side tool permission responses. */
 export type TurnMessages = (HistoryMessage | ToolPermissionMessage)[];
 
 /** Manages a stateful conversation session, accumulating history across turns. */
@@ -281,6 +282,7 @@ export class Session {
     })();
   }
 
+  /** Applies config overrides from the request that persist for the session lifetime: client tools, enabled/trusted agent tools, and agent options. */
   private applySessionOverrides(req: SessionTurnRequest): void {
     // Override client-provided tools
     if (req.tools) this.clientTools = req.tools;
@@ -294,6 +296,7 @@ export class Session {
       };
   }
 
+  /** Routes to the appropriate turn runner based on the requested stream mode. */
   private dispatchTurn(
     stream: StreamMode | undefined,
     messages: TurnMessages,
@@ -303,12 +306,13 @@ export class Session {
     return this.runTurnNone(messages);
   }
 
-  /** Dispatches to `runTurnDelta`, `runTurnMessage`, or `runTurnNone` based on `streamMode`. Applies optional config overrides before running. */
+  /** Dispatches to the appropriate turn runner based on `stream` mode. Applies optional config overrides that persist for the session lifetime. */
   runTurn(req: SessionTurnRequest): AsyncIterable<SSEEvent> | Promise<AgentResponse> {
     this.applySessionOverrides(req);
     return this.dispatchTurn(req.stream, req.messages);
   }
 
+  /** Returns all `tool_use` blocks from the most recent assistant message in history. */
   private lastToolUses(): {
     toolCallId: string;
     name: string;
@@ -321,6 +325,7 @@ export class Session {
     );
   }
 
+  /** Serializes the session state for a `GET /session/:id` response. History is not included. */
   toSessionResponse(): SessionResponse {
     return {
       sessionId: this.sessionId,
