@@ -3,7 +3,9 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { Server } from "../../server.js";
 import { Agent } from "../../agent.js";
-import { AiSDKSession, sessions } from "./session.js";
+import { AiModelProvider } from "../../model.js";
+import { createOpenAI } from "@ai-sdk/openai";
+import { TruncatedHistorySession, sessions } from "./session.js";
 import type {
   CreateSessionRequest,
   CreateSessionResponse,
@@ -12,9 +14,11 @@ import type {
 } from "@agentapplicationprotocol/core";
 import type { ServerHandler } from "../../server.js";
 
-const agent = new Agent("ai-sdk-agent", {
+/** Agent definition with options, capabilities, and tools. */
+const agent = new Agent("compact-history-agent", {
   version: "0.1.0",
-  description: "An AAP-compatible agent powered by Vercel AI SDK.",
+  description:
+    "An AAP-compatible agent with sliding-window history compaction, powered by Vercel AI SDK.",
 })
   .image({ http: {}, data: {} })
   .history({ compacted: {}, full: {} })
@@ -65,7 +69,13 @@ const handler: ServerHandler = {
     req: CreateSessionRequest,
   ): Promise<CreateSessionResponse> | AsyncIterable<SSEEvent> {
     const sessionId = `sess_${randomUUID()}`;
-    const session = new AiSDKSession(sessionId, agent, req.agent, req.tools);
+    // Build the model from client-supplied options
+    const openai = createOpenAI({
+      baseURL: req.agent.options?.baseURL || undefined,
+      apiKey: req.agent.options?.apiKey || undefined,
+    });
+    const model = new AiModelProvider(openai.chat(req.agent.options?.model ?? "gpt-4o"));
+    const session = new TruncatedHistorySession(sessionId, agent, model, req.agent, req.tools);
     sessions.set(sessionId, session);
     return session.runNewSession(req);
   },
@@ -79,6 +89,7 @@ const handler: ServerHandler = {
   async getSession(sessionId: string) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
+    // history exposes both the compacted window and the full uncompacted history
     return {
       ...session.toSessionResponse(),
       history: { compacted: session.history, full: session.fullHistory },
@@ -97,4 +108,4 @@ const handler: ServerHandler = {
 const port = Number(process.env.PORT ?? 3010);
 const server = new Server(handler, { cors: "*" });
 serve({ fetch: server.app.fetch, port });
-console.log(`ai-sdk-agent running on http://localhost:${port}`);
+console.log(`compact-history-agent running on http://localhost:${port}`);

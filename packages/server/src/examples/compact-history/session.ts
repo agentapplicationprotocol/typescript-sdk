@@ -1,11 +1,8 @@
 import type { AgentResponse, HistoryMessage, SSEEvent } from "@agentapplicationprotocol/core";
 import { Session } from "../../session.js";
-import { AiModelProvider } from "../../model.js";
-import { createOpenAI } from "@ai-sdk/openai";
-import type { Agent } from "../../agent.js";
-import type { AgentConfig, ToolSpec } from "@agentapplicationprotocol/core";
 
-export const sessions = new Map<string, AiSDKSession>();
+/** In-memory session store. */
+export const sessions = new Map<string, TruncatedHistorySession>();
 
 const COMPACTED_HISTORY_SIZE = 10;
 
@@ -19,43 +16,27 @@ function compact(history: HistoryMessage[]): HistoryMessage[] {
 }
 
 /**
- * AI SDK session with sliding-window history compaction.
+ * Session subclass with sliding-window history compaction.
  * `this.history` holds the compacted window sent to the model.
  * `fullHistory` retains the complete uncompacted history.
  */
-export class AiSDKSession extends Session {
+export class TruncatedHistorySession extends Session {
   fullHistory: HistoryMessage[] = [];
 
-  constructor(
-    sessionId: string,
-    agent: Agent,
-    agentConfig: AgentConfig,
-    clientTools: ToolSpec[] = [],
-  ) {
-    const openai = createOpenAI({
-      baseURL: agentConfig.options?.baseURL || undefined,
-      apiKey: agentConfig.options?.apiKey || undefined,
-    });
-    super(
-      sessionId,
-      agent,
-      new AiModelProvider(openai.chat(agentConfig.options?.model ?? "gpt-4o")),
-      agentConfig,
-      clientTools,
-    );
-  }
-
+  /** Appends new history entries to `fullHistory` and trims `this.history` to the compacted window. */
   private syncAndCompact(before: number) {
     this.fullHistory.push(...this.history.slice(before));
     this.history = compact(this.history);
   }
 
+  /** Streams the model response, then compacts history. */
   protected async *stream(messages: HistoryMessage[]): AsyncIterable<SSEEvent> {
     const before = this.history.length;
     for await (const e of super.stream(messages)) yield e;
     this.syncAndCompact(before);
   }
 
+  /** Calls the model, then compacts history. */
   protected async call(messages: HistoryMessage[]): Promise<AgentResponse> {
     const before = this.history.length;
     const res = await super.call(messages);

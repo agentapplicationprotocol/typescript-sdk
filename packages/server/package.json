@@ -15,7 +15,7 @@
     "test": "vitest run",
     "dev": "tsc --watch",
     "example:basic": "tsx src/examples/basic/index.ts",
-    "example:ai-sdk": "tsx src/examples/ai-sdk/index.ts"
+    "example:compact-history": "tsx src/examples/compact-history/index.ts"
   },
   "dependencies": {
     "@agentapplicationprotocol/core": "workspace:*",
