@@ -1,7 +1,8 @@
 import type { AgentResponse, HistoryMessage, SSEEvent } from "@agentapplicationprotocol/core";
-import { Session } from "../server_new.js";
-import { AiSDK } from "./llm.js";
-import type { Agent } from "../server_new.js";
+import { Session } from "../../session.js";
+import { AiModelProvider } from "../../model.js";
+import { createOpenAI } from "@ai-sdk/openai";
+import type { Agent } from "../../agent.js";
 import type { AgentConfig, ToolSpec } from "@agentapplicationprotocol/core";
 
 export const sessions = new Map<string, AiSDKSession>();
@@ -31,7 +32,17 @@ export class AiSDKSession extends Session {
     agentConfig: AgentConfig,
     clientTools: ToolSpec[] = [],
   ) {
-    super(sessionId, agent, new AiSDK(agentConfig.options), agentConfig, clientTools);
+    const openai = createOpenAI({
+      baseURL: agentConfig.options?.baseURL || undefined,
+      apiKey: agentConfig.options?.apiKey || undefined,
+    });
+    super(
+      sessionId,
+      agent,
+      new AiModelProvider(openai(agentConfig.options?.model ?? "gpt-4o")),
+      agentConfig,
+      clientTools,
+    );
   }
 
   private syncAndCompact(before: number) {

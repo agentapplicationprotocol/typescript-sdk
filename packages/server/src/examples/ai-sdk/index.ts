@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { Server } from "../../server.js";
-import { Agent } from "../../server_new.js";
+import { Agent } from "../../agent.js";
 import { AiSDKSession, sessions } from "./session.js";
 import type {
   CreateSessionRequest,

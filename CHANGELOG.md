@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Named variant types for `SSEEvent`: `SessionStartEvent`, `TurnStartEvent`, `TextDeltaEvent`, `ThinkingDeltaEvent`, `TextEvent`, `ThinkingEvent`, `ToolCallSSEEvent`, `ToolResultEvent`, `TurnStopEvent`
 - `DeltaSSEEvent` union type for `stream: "delta"` events
 - `MessageSSEEvent` union type for `stream: "message"` events
+- `AiModelProvider` in `@agentapplicationprotocol/server` — a `ModelProvider` implementation backed by any Vercel AI SDK `LanguageModel`
 
 ### Changed
 
