@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sseEventsToMessages, resolvePendingToolUse } from "./utils";
+import { sseEventsToMessages, sseEventsToMessagesAsync, resolvePendingToolUse } from "./utils";
 import type { HistoryMessage, SSEEvent, ToolSpec } from "./types";
 
 describe("sseEventsToMessages", () => {
@@ -145,5 +145,31 @@ describe("resolvePendingToolUse", () => {
     ];
     // last message is user, but last assistant has resolved tool — should return empty
     expect(resolvePendingToolUse(messages, [clientTool])).toEqual({ client: [], server: [] });
+  });
+});
+
+describe("sseEventsToMessagesAsync", () => {
+  async function* toAsync(events: SSEEvent[]) {
+    for (const e of events) yield e;
+  }
+
+  it("converts events to messages and stopReason", async () => {
+    const events: SSEEvent[] = [
+      { event: "text", text: "hello" },
+      { event: "turn_stop", stopReason: "end_turn" },
+    ];
+    const [messages, stopReason] = await sseEventsToMessagesAsync(toAsync(events));
+    expect(messages).toEqual([{ role: "assistant", content: [{ type: "text", text: "hello" }] }]);
+    expect(stopReason).toBe("end_turn");
+  });
+
+  it("returns empty messages for no content", async () => {
+    const events: SSEEvent[] = [
+      { event: "turn_start" },
+      { event: "turn_stop", stopReason: "tool_use" },
+    ];
+    const [messages, stopReason] = await sseEventsToMessagesAsync(toAsync(events));
+    expect(messages).toEqual([]);
+    expect(stopReason).toBe("tool_use");
   });
 });
