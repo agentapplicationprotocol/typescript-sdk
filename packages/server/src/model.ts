@@ -1,9 +1,9 @@
 import {
   HistoryMessage,
   ToolSpec,
-  SSEEvent,
   AgentResponse,
   sseEventsToMessagesAsync,
+  DeltaSSEEvent,
 } from "@agentapplicationprotocol/core";
 
 /**
@@ -13,7 +13,7 @@ import {
  */
 export abstract class ModelProvider {
   /** Calls the LLM in streaming mode and yields SSE events as they arrive. */
-  abstract stream(history: HistoryMessage[], tools: ToolSpec[]): AsyncIterable<SSEEvent>;
+  abstract stream(history: HistoryMessage[], tools: ToolSpec[]): AsyncIterable<DeltaSSEEvent>;
 
   /** Calls the LLM in non-streaming mode and returns a complete AgentResponse. Falls back to streaming if not overridden. */
   async call(history: HistoryMessage[], tools: ToolSpec[]): Promise<AgentResponse> {

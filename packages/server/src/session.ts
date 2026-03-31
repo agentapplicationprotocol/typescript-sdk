@@ -13,6 +13,8 @@ import {
   StreamMode,
   ContentBlock,
   SessionResponse,
+  DeltaSSEEvent,
+  MessageSSEEvent,
 } from "@agentapplicationprotocol/core";
 import { ModelProvider } from "./model";
 import { Agent } from "./agent";
@@ -96,7 +98,7 @@ export class Session {
    *
    * Override to customize history sent to the model, e.g. compaction or summarization.
    */
-  protected async *stream(messages: HistoryMessage[]): AsyncIterable<SSEEvent> {
+  protected async *stream(messages: HistoryMessage[]): AsyncIterable<DeltaSSEEvent> {
     const history = [...this.history, ...messages];
     const events: SSEEvent[] = [];
     for await (const e of this.model.stream(history, this.enabledToolSpecs())) {
@@ -127,7 +129,7 @@ export class Session {
    * server tools inline, and repeats until a non-tool-use stop or an untrusted
    * tool is encountered.
    */
-  private async *runTurnDelta(messages: TurnMessages): AsyncIterable<SSEEvent> {
+  private async *runTurnDelta(messages: TurnMessages): AsyncIterable<DeltaSSEEvent> {
     const incoming = await this.resolvePermissions(messages);
     const trusted = this.trustedTools();
 
@@ -172,7 +174,7 @@ export class Session {
    * events (not deltas). Uses a non-streaming LLM call internally, then emits SSE events
    * from the response. Loops on trusted inline tool calls.
    */
-  private async *runTurnMessage(messages: TurnMessages): AsyncIterable<SSEEvent> {
+  private async *runTurnMessage(messages: TurnMessages): AsyncIterable<MessageSSEEvent> {
     const incoming = await this.resolvePermissions(messages);
     const trusted = this.trustedTools();
 
