@@ -188,6 +188,42 @@ describe("Server", () => {
     expect(res.status).toBe(200);
   });
 
+  it("GET /session/:id does not redact when agent not found in meta", async () => {
+    const sessionWithOptions: SessionResponse = {
+      sessionId: "s1",
+      agent: { name: "unknown", options: { key: "secret" } },
+    };
+    const server = new Server(
+      makeHandler({
+        getSession: vi.fn().mockResolvedValue(sessionWithOptions),
+        getMeta: vi.fn().mockResolvedValue({ version: 1, agents: [] }),
+      }),
+    );
+    const res = await server.app.fetch(req("GET", "/session/s1"));
+    expect(await res.json()).toEqual(sessionWithOptions);
+  });
+
+  it("GET /session/:id does not redact when agent has no secret options", async () => {
+    const sessionWithOptions: SessionResponse = {
+      sessionId: "s1",
+      agent: { name: "a", options: { model: "gpt-4" } },
+    };
+    const metaNoSecrets: MetaResponse = {
+      version: 1,
+      agents: [
+        { name: "a", version: "1.0.0", options: [{ type: "text", name: "model", default: "" }] },
+      ],
+    };
+    const server = new Server(
+      makeHandler({
+        getSession: vi.fn().mockResolvedValue(sessionWithOptions),
+        getMeta: vi.fn().mockResolvedValue(metaNoSecrets),
+      }),
+    );
+    const res = await server.app.fetch(req("GET", "/session/s1"));
+    expect(await res.json()).toEqual(sessionWithOptions);
+  });
+
   it("cors: sets Access-Control-Allow-Origin header", async () => {
     const server = new Server(makeHandler(), { cors: "https://example.com" });
     const res = await server.app.fetch(
