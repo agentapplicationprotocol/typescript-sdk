@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `server_new.ts` module with `ModelProvider`, `Session`, and `Agent` base classes for building AAP-compatible agents
+- `Session` stores `sessionId`, `agentConfig`, `clientTools`, and accumulated `history`
+- `Session.toSessionResponse()` returns a `SessionResponse` from session state
+- `Session.runNewSession(req: CreateSessionRequest)` runs the first turn and wraps the result with `sessionId`
+- `Session.runTurn(req: SessionTurnRequest)` applies per-request overrides then dispatches by stream mode
+- Vercel AI SDK example agent (`src/examples/ai-sdk/`) with `AiSDKSession`, `AiSDK` model provider, and `toAiMessages` converter
+- `ModelProvider` and `Session` exported from the package root
+
 ## [0.3.1] - 2026-03-29
 
 ### Added

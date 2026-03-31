@@ -1,0 +1,54 @@
+import type { AgentResponse, HistoryMessage, SSEEvent } from "../../index.js";
+import { Session } from "../../server_new.js";
+import { AiSDK } from "./llm.js";
+import type { Agent } from "../../server_new.js";
+import type { AgentConfig, ToolSpec } from "../../index.js";
+
+export const sessions = new Map<string, AiSDKSession>();
+
+const COMPACTED_HISTORY_SIZE = 10;
+
+/** Trims history to the last `COMPACTED_HISTORY_SIZE` messages, ensuring the window never starts on a `tool` message. */
+function compact(history: HistoryMessage[]): HistoryMessage[] {
+  if (history.length <= COMPACTED_HISTORY_SIZE) return history;
+  let start = history.length - COMPACTED_HISTORY_SIZE;
+  // skip leading tool messages to avoid orphaned tool results
+  while (start < history.length && history[start].role === "tool") start++;
+  return history.slice(start);
+}
+
+/**
+ * AI SDK session with sliding-window history compaction.
+ * `this.history` holds the compacted window sent to the model.
+ * `fullHistory` retains the complete uncompacted history.
+ */
+export class AiSDKSession extends Session {
+  fullHistory: HistoryMessage[] = [];
+
+  constructor(
+    sessionId: string,
+    agent: Agent,
+    agentConfig: AgentConfig,
+    clientTools: ToolSpec[] = [],
+  ) {
+    super(sessionId, agent, new AiSDK(agentConfig.options), agentConfig, clientTools);
+  }
+
+  private syncAndCompact(before: number) {
+    this.fullHistory.push(...this.history.slice(before));
+    this.history = compact(this.history);
+  }
+
+  protected async *stream(messages: HistoryMessage[]): AsyncIterable<SSEEvent> {
+    const before = this.history.length;
+    for await (const e of super.stream(messages)) yield e;
+    this.syncAndCompact(before);
+  }
+
+  protected async call(messages: HistoryMessage[]): Promise<AgentResponse> {
+    const before = this.history.length;
+    const res = await super.call(messages);
+    this.syncAndCompact(before);
+    return res;
+  }
+}

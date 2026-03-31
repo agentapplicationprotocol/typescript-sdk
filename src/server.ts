@@ -24,11 +24,11 @@ export interface ServerHandler {
   /** The last message in `req.messages` is guaranteed to be a user message. */
   createSession(
     req: CreateSessionRequest,
-  ): Promise<CreateSessionResponse | AsyncIterable<SSEEvent>>;
+  ): Promise<CreateSessionResponse> | AsyncIterable<SSEEvent>;
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest,
-  ): Promise<AgentResponse | AsyncIterable<SSEEvent>>;
+  ): Promise<AgentResponse> | AsyncIterable<SSEEvent>;
   deleteSession(sessionId: string): Promise<void>;
 }
 
