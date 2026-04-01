@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Session.load(client, sessionId, agentInfo, history?)` in `@agentapplicationprotocol/client` — loads an existing session by ID, optionally fetching `"full"` or `"compacted"` history, and resolves pending tool use; returns `{ session, pending }` like `Session.create()`
+
 ## [0.4.1] - 2026-04-01
 
 ### Changed

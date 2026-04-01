@@ -86,6 +86,23 @@ export class Session {
   }
 
   /**
+   * Loads an existing session and resolves any pending tool use.
+   * @returns The loaded session and any pending tool calls.
+   */
+  static async load(
+    client: Client,
+    sessionId: string,
+    agentInfo: AgentInfo,
+    history?: "full" | "compacted",
+  ): Promise<{ session: Session; pending: PendingToolUse }> {
+    const res = await client.getSession(sessionId, history);
+    const session = new Session(sessionId, client, agentInfo, res.agent, res.tools);
+    const h = history === "compacted" ? res.history?.compacted : res.history?.full;
+    session.history.push(...(h ?? []));
+    return { session, pending: resolvePendingToolUse(session.history, session.tools) };
+  }
+
+  /**
    * Sends a turn to the server and appends the result to history.
    * Strips `tools` and `agent` fields that are unchanged from the current session state.
    * Updates `tools` if `req.tools` is provided.
