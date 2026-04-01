@@ -1,5 +1,5 @@
 {
-  "name": "aap-ts",
+  "name": "typescript-sdk",
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
