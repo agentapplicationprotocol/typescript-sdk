@@ -24,4 +24,5 @@ const session = await Session.create(client, "my-agent", {
 
 ## Examples
 
-- [CLI example](./src/examples/cli.ts)
+- [Basic example](./src/examples/basic) — sends a few prompts without streaming
+- [CLI example](./src/examples/cli) — interactive terminal chat client

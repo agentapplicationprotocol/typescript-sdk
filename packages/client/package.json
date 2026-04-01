@@ -31,7 +31,8 @@
     "build": "tsc",
     "test": "vitest run",
     "dev": "tsc --watch",
-    "example:cli": "tsx src/examples/cli.ts"
+    "example:basic": "tsx src/examples/basic/index.ts",
+    "example:cli": "tsx src/examples/cli/index.ts"
   },
   "dependencies": {
     "@agentapplicationprotocol/core": "workspace:*",

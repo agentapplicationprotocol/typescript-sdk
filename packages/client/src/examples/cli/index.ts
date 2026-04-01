@@ -2,7 +2,7 @@
 /**
  * AAP CLI — interactive chat client
  *
- * Usage: BASE_URL=http://localhost:3010 API_KEY=secret tsx src/examples/cli.ts [agent-name]
+ * Usage: BASE_URL=http://localhost:3010 API_KEY=secret tsx src/examples/cli/index.ts [agent-name]
  *
  * Slash commands:
  *   /stream delta|message|none   — set streaming mode
