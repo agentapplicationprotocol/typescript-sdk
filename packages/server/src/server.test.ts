@@ -107,6 +107,40 @@ describe("aap middleware", () => {
     expect(handler.listSessions).toHaveBeenCalledWith({ after: "cursor1" });
   });
 
+  it("GET /sessions redacts secret options in each session", async () => {
+    const secretSession: SessionResponse = {
+      sessionId: "s1",
+      agent: { name: "a", options: { key: "mysecret", model: "gpt-4" } },
+    };
+    const app = makeApp(
+      makeHandler({
+        listSessions: vi.fn().mockResolvedValue({ sessions: [secretSession] }),
+        getMeta: vi.fn().mockReturnValue({
+          agents: [
+            {
+              name: "a",
+              version: "1.0.0",
+              options: [
+                { type: "secret", name: "key", default: "" },
+                { type: "text", name: "model", default: "" },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    const res = await app.fetch(req("GET", "/sessions"));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      sessions: [
+        {
+          ...secretSession,
+          agent: { ...secretSession.agent, options: { key: "***", model: "gpt-4" } },
+        },
+      ],
+    });
+  });
+
   it("PUT /session returns 400 if last message is not a user message", async () => {
     const app = makeApp(makeHandler());
     const res = await app.fetch(

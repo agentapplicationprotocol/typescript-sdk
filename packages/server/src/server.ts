@@ -118,7 +118,12 @@ export function aap(handler: Handler): Hono {
 
   router.get("/sessions", async (c) => {
     const after = c.req.query("after");
-    return c.json(await handler.listSessions({ after }));
+    const result = await handler.listSessions({ after });
+    const { agents } = handler.getMeta();
+    return c.json({
+      ...result,
+      sessions: result.sessions.map((s) => redactSecretOptions(s, agents)),
+    });
   });
 
   router.delete("/session/:id", async (c) => {

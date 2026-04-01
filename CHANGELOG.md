@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `GET /sessions` now redacts secret options in each session, consistent with `GET /session/:id`
+
 ## [0.6.0] - 2026-04-01
 
 ### Changed
