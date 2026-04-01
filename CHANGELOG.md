@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-04-01
+
 ### Added
 
 - `Session.load(client, sessionId, agentInfo, history?)` in `@agentapplicationprotocol/client` — loads an existing session by ID, optionally fetching `"full"` or `"compacted"` history, and resolves pending tool use; returns `{ session, pending }` like `Session.create()`
@@ -106,7 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of the TypeScript SDK for the Agent Application Protocol (AAP)
 
-[unreleased]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.1...HEAD
+[unreleased]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.3.0...v0.3.1
