@@ -87,15 +87,18 @@ export class Session {
 
   /**
    * Loads an existing session and resolves any pending tool use.
+   * @param agents - List of known agents to match against the session's agent name.
    * @returns The loaded session and any pending tool calls.
    */
   static async load(
     client: Client,
     sessionId: string,
-    agentInfo: AgentInfo,
+    agents: AgentInfo[],
     history?: "full" | "compacted",
   ): Promise<{ session: Session; pending: PendingToolUse }> {
     const res = await client.getSession(sessionId, history);
+    const agentInfo = agents.find((a) => a.name === res.agent.name);
+    if (!agentInfo) throw new Error(`Unknown agent: ${res.agent.name}`);
     const session = new Session(sessionId, client, agentInfo, res.agent, res.tools);
     const h = history === "compacted" ? res.history?.compacted : res.history?.full;
     session.history.push(...(h ?? []));

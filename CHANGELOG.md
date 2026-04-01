@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- `Session.load()` now accepts `agents: AgentInfo[]` instead of a single `agentInfo: AgentInfo`; throws if the session's agent name is not found in the list
+
 ## [0.4.2] - 2026-04-01
 
 ### Added
