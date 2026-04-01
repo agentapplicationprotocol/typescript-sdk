@@ -1,6 +1,6 @@
 {
   "name": "@agentapplicationprotocol/sdk",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "TypeScript SDK for the Agent Application Protocol (AAP)",
   "keywords": [
     "aap",
