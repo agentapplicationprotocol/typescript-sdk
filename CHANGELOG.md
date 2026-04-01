@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Session.load(client, sessionId, agentInfo, history?)` in `@agentapplicationprotocol/client` — loads an existing session by ID, optionally fetching `"full"` or `"compacted"` history, and resolves pending tool use; returns `{ session, pending }` like `Session.create()`
 
+### Fixed
+
+- Corrected `main` and `types` entry points in all packages from `dist/index.*` to `dist/src/index.*` to match actual TypeScript build output
+
 ## [0.4.1] - 2026-04-01
 
 ### Changed

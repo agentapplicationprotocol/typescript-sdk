@@ -2,10 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "composite": true,
-    "paths": {
-      "@agentapplicationprotocol/core": ["../core/src/index.ts"]
-    }
+    "composite": true
   },
   "references": [{ "path": "../core" }],
   "include": ["src"],
