@@ -6,6 +6,7 @@ import {
   AgentResponse,
   CreateSessionRequest,
   CreateSessionResponse,
+  HistoryMessage,
   MetaResponse,
   SessionListResponse,
   SessionResponse,
@@ -18,7 +19,8 @@ import {
 export interface Handler {
   getMeta(): MetaResponse;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
-  getSession(sessionId: string, history?: "compacted" | "full"): Promise<SessionResponse>;
+  getSession(sessionId: string): Promise<SessionResponse>;
+  getSessionHistory(sessionId: string, type: "compacted" | "full"): Promise<HistoryMessage[]>;
   /** The last message in `req.messages` is guaranteed to be a user message. */
   createSession(
     req: CreateSessionRequest,
@@ -101,18 +103,17 @@ export function aap(handler: Handler): Hono {
   });
 
   router.get("/session/:id", async (c) => {
-    const historyParam = c.req.query("history");
-    const history =
-      historyParam === "compacted" || historyParam === "full" ? historyParam : undefined;
-    const session = await handler.getSession(c.req.param("id"), history);
-    // strip history fields not matching the requested mode
-    if (session.history) {
-      if (history === "compacted") delete session.history.full;
-      else if (history === "full") delete session.history.compacted;
-      else session.history = undefined;
-    }
+    const session = await handler.getSession(c.req.param("id"));
     const meta = handler.getMeta();
     return c.json(redactSecretOptions(session, meta.agents));
+  });
+
+  router.get("/session/:id/history", async (c) => {
+    const typeParam = c.req.query("type");
+    if (typeParam !== "compacted" && typeParam !== "full")
+      return c.json({ error: 'type must be "compacted" or "full"' }, 400);
+    const messages = await handler.getSessionHistory(c.req.param("id"), typeParam);
+    return c.json({ history: { [typeParam]: messages } });
   });
 
   router.get("/sessions", async (c) => {

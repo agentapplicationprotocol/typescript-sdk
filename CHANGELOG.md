@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: `GET /sessions` now returns full session objects (`SessionResponse[]`) instead of an array of IDs (`string[]`)
+- **BREAKING**: `GET /session/:id` no longer accepts `?history` query parameter or returns history in the response
+- **BREAKING**: `Handler.getSession` no longer accepts a `history` parameter; returns `SessionResponse` without history
+- **BREAKING**: `Handler.getSessionHistory` now returns `HistoryMessage[]` instead of `SessionHistoryResponse`; the router handles response formatting
+- **BREAKING**: `Session.load()` now accepts `(client, sessionResponse, agentInfo, history?)` instead of fetching the session internally
+- **BREAKING**: `Client.listAllSessions()` now returns `SessionResponse[]` instead of `string[]`
+- **BREAKING**: `MetaResponse.version` type narrowed from `number` to `2`
+- Added `GET /session/:id/history?type=compacted|full` endpoint (`SessionHistoryResponse` type)
+- Added `Client.getSessionHistory(sessionId, type)` method
+- Protocol version bumped to `2`
+
 ## [0.5.0] - 2026-04-01
 
 ### Changes

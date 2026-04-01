@@ -4,6 +4,7 @@ import {
   CreateSessionRequest,
   CreateSessionResponse,
   MetaResponse,
+  SessionHistoryResponse,
   SessionListResponse,
   SessionResponse,
   SessionTurnRequest,
@@ -88,9 +89,9 @@ export class Client {
     return this.request("GET", path);
   }
 
-  /** Fetches all session IDs across all pages. */
-  async listAllSessions(): Promise<string[]> {
-    const sessions: string[] = [];
+  /** Fetches all sessions across all pages. */
+  async listAllSessions(): Promise<SessionResponse[]> {
+    const sessions: SessionResponse[] = [];
     let after: string | undefined;
     do {
       const res = await this.listSessions({ after });
@@ -101,11 +102,19 @@ export class Client {
   }
 
   /** GET /session/:id */
-  getSession(sessionId: string, history?: "compacted" | "full"): Promise<SessionResponse> {
-    const path = history
-      ? `/session/${sessionId}?${new URLSearchParams({ history }).toString()}`
-      : `/session/${sessionId}`;
-    return this.request("GET", path);
+  getSession(sessionId: string): Promise<SessionResponse> {
+    return this.request("GET", `/session/${sessionId}`);
+  }
+
+  /** GET /session/:id/history */
+  getSessionHistory(
+    sessionId: string,
+    type: "compacted" | "full",
+  ): Promise<SessionHistoryResponse> {
+    return this.request(
+      "GET",
+      `/session/${sessionId}/history?${new URLSearchParams({ type }).toString()}`,
+    );
   }
 
   /** PUT /session — non-streaming */

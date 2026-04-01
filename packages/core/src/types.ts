@@ -176,7 +176,7 @@ export interface AgentInfo {
 /** Response body for `GET /meta`. */
 export interface MetaResponse {
   /** AAP protocol version. */
-  version: number;
+  version: 2;
   agents: AgentInfo[];
 }
 
@@ -229,25 +229,29 @@ export interface CreateSessionResponse extends AgentResponse {
   sessionId: string;
 }
 
-/** Response body for `GET /session/:id`. */
+/** Response body for `GET /session/:id` and items in `GET /sessions`. */
 export interface SessionResponse {
   sessionId: string;
   /** Secret option values in `agent.options` are redacted (e.g. `"***"`). */
   agent: AgentConfig;
   /** Application-side tools declared for this session. */
   tools?: ToolSpec[];
-  history?: {
-    /** Omitted if the server chooses not to expose. Present when `?history=compacted` */
+}
+
+/** Response body for `GET /session/:id/history`. */
+export interface SessionHistoryResponse {
+  history: {
+    /** Present when `?type=compacted` */
     compacted?: HistoryMessage[];
-    /** Omitted if the server chooses not to expose. Present when `?history=full` */
+    /** Present when `?type=full` */
     full?: HistoryMessage[];
   };
 }
 
 /** Response body for `GET /sessions`. */
 export interface SessionListResponse {
-  /** Array of session IDs. */
-  sessions: string[];
+  /** Array of session objects. Each object has the same shape as `SessionResponse`. */
+  sessions: SessionResponse[];
   /** Pagination cursor; absent when there are no more results. Pass as `after` to get the next page. */
   next?: string;
 }

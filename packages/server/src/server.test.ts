@@ -6,17 +6,18 @@ import { aap } from "./server";
 import type { Handler } from "./server";
 import type {
   AgentResponse,
+  HistoryMessage,
   MetaResponse,
   SessionListResponse,
   SessionResponse,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 
-const meta: MetaResponse = { version: 1, agents: [] };
+const meta: MetaResponse = { version: 2, agents: [] };
 const session: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
 const agentResponse: AgentResponse = { stopReason: "end_turn", messages: [] };
 const createSessionResponse = { ...agentResponse, sessionId: "s1" };
-const sessionList: SessionListResponse = { sessions: ["s1"] };
+const sessionList: SessionListResponse = { sessions: [session] };
 
 async function* sseEvents(): AsyncIterable<SSEEvent> {
   yield { event: "turn_start" };
@@ -29,6 +30,7 @@ function makeHandler(overrides: Partial<Handler> = {}): Handler {
     getMeta: vi.fn().mockReturnValue(meta),
     listSessions: vi.fn().mockResolvedValue(sessionList),
     getSession: vi.fn().mockResolvedValue(session),
+    getSessionHistory: vi.fn().mockResolvedValue([] satisfies HistoryMessage[]),
     createSession: vi.fn().mockResolvedValue(createSessionResponse),
     sendTurn: vi.fn().mockResolvedValue(agentResponse),
     deleteSession: vi.fn().mockResolvedValue(undefined),
@@ -72,7 +74,7 @@ describe("aap middleware", () => {
       agent: { name: "a", options: { key: "mysecret", model: "gpt-4" } },
     };
     const secretMeta: MetaResponse = {
-      version: 1,
+      version: 2,
       agents: [
         {
           name: "a",
@@ -197,7 +199,7 @@ describe("aap middleware", () => {
     const app = makeApp(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
-        getMeta: vi.fn().mockReturnValue({ version: 1, agents: [] }),
+        getMeta: vi.fn().mockReturnValue({ version: 2, agents: [] }),
       }),
     );
     const res = await app.fetch(req("GET", "/session/s1"));
@@ -213,7 +215,7 @@ describe("aap middleware", () => {
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
         getMeta: vi.fn().mockReturnValue({
-          version: 1,
+          version: 2,
           agents: [
             {
               name: "a",
@@ -228,49 +230,29 @@ describe("aap middleware", () => {
     expect(await res.json()).toEqual(sessionWithOptions);
   });
 
-  it("GET /session/:id?history=compacted passes param and strips full", async () => {
-    const handler = makeHandler({
-      getSession: vi.fn().mockResolvedValue({
-        ...session,
-        history: { compacted: [], full: [] },
-      }),
-    });
+  it("GET /session/:id/history?type=compacted calls getSessionHistory", async () => {
+    const messages: HistoryMessage[] = [{ role: "user", content: "hi" }];
+    const handler = makeHandler({ getSessionHistory: vi.fn().mockResolvedValue(messages) });
     const app = makeApp(handler);
-    const res = await app.fetch(req("GET", "/session/s1?history=compacted"));
-    expect(handler.getSession).toHaveBeenCalledWith("s1", "compacted");
-    expect(await res.json()).toEqual({ ...session, history: { compacted: [] } });
+    const res = await app.fetch(req("GET", "/session/s1/history?type=compacted"));
+    expect(res.status).toBe(200);
+    expect(handler.getSessionHistory).toHaveBeenCalledWith("s1", "compacted");
+    expect(await res.json()).toEqual({ history: { compacted: messages } });
   });
 
-  it("GET /session/:id?history=full passes param and strips compacted", async () => {
-    const handler = makeHandler({
-      getSession: vi.fn().mockResolvedValue({
-        ...session,
-        history: { compacted: [], full: [] },
-      }),
-    });
+  it("GET /session/:id/history?type=full calls getSessionHistory", async () => {
+    const messages: HistoryMessage[] = [{ role: "user", content: "hi" }];
+    const handler = makeHandler({ getSessionHistory: vi.fn().mockResolvedValue(messages) });
     const app = makeApp(handler);
-    const res = await app.fetch(req("GET", "/session/s1?history=full"));
-    expect(handler.getSession).toHaveBeenCalledWith("s1", "full");
-    expect(await res.json()).toEqual({ ...session, history: { full: [] } });
+    const res = await app.fetch(req("GET", "/session/s1/history?type=full"));
+    expect(res.status).toBe(200);
+    expect(handler.getSessionHistory).toHaveBeenCalledWith("s1", "full");
+    expect(await res.json()).toEqual({ history: { full: messages } });
   });
 
-  it("GET /session/:id without ?history passes undefined and strips history from response", async () => {
-    const handler = makeHandler({
-      getSession: vi.fn().mockResolvedValue({
-        ...session,
-        history: { compacted: [], full: [] },
-      }),
-    });
-    const app = makeApp(handler);
-    const res = await app.fetch(req("GET", "/session/s1"));
-    expect(handler.getSession).toHaveBeenCalledWith("s1", undefined);
-    expect(await res.json()).toEqual(session);
-  });
-
-  it("GET /session/:id with invalid ?history passes undefined", async () => {
-    const handler = makeHandler();
-    const app = makeApp(handler);
-    await app.fetch(req("GET", "/session/s1?history=invalid"));
-    expect(handler.getSession).toHaveBeenCalledWith("s1", undefined);
+  it("GET /session/:id/history without valid ?type returns 400", async () => {
+    const app = makeApp(makeHandler());
+    const res = await app.fetch(req("GET", "/session/s1/history"));
+    expect(res.status).toBe(400);
   });
 });

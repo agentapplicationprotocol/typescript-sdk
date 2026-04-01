@@ -46,10 +46,10 @@ beforeEach(() => {
 });
 
 describe("Session.load", () => {
+  const sessionRes: SessionResponse = { sessionId: "s1", agent: { name: "test-agent" } };
+
   it("returns session with correct sessionId and agentConfig", async () => {
-    const res: SessionResponse = { sessionId: "s1", agent: { name: "test-agent" } };
-    vi.stubGlobal("fetch", mockFetch(res));
-    const { session } = await Session.load(client, "s1", [agentInfo]);
+    const { session } = await Session.load(client, sessionRes, agentInfo);
     expect(session.sessionId).toBe("s1");
     expect(session.agentConfig).toEqual({ name: "test-agent" });
     expect(session.agent).toBe(agentInfo);
@@ -57,32 +57,21 @@ describe("Session.load", () => {
 
   it("populates history from full history", async () => {
     const history = [{ role: "user" as const, content: "hi" }];
-    const res: SessionResponse = {
-      sessionId: "s1",
-      agent: { name: "test-agent" },
-      history: { full: history },
-    };
-    vi.stubGlobal("fetch", mockFetch(res));
-    const { session } = await Session.load(client, "s1", [agentInfo], "full");
+    vi.stubGlobal("fetch", mockFetch({ history: { full: history } }));
+    const { session } = await Session.load(client, sessionRes, agentInfo, "full");
     expect(session.history).toEqual(history);
   });
 
   it("populates history from compacted history", async () => {
     const history = [{ role: "user" as const, content: "summary" }];
-    const res: SessionResponse = {
-      sessionId: "s1",
-      agent: { name: "test-agent" },
-      history: { compacted: history },
-    };
-    vi.stubGlobal("fetch", mockFetch(res));
-    const { session } = await Session.load(client, "s1", [agentInfo], "compacted");
+    vi.stubGlobal("fetch", mockFetch({ history: { compacted: history } }));
+    const { session } = await Session.load(client, sessionRes, agentInfo, "compacted");
     expect(session.history).toEqual(history);
   });
 
   it("returns empty history when no history in response", async () => {
-    const res: SessionResponse = { sessionId: "s1", agent: { name: "test-agent" } };
-    vi.stubGlobal("fetch", mockFetch(res));
-    const { session } = await Session.load(client, "s1", [agentInfo], "full");
+    vi.stubGlobal("fetch", mockFetch({ history: {} }));
+    const { session } = await Session.load(client, sessionRes, agentInfo, "full");
     expect(session.history).toEqual([]);
   });
 
@@ -101,34 +90,25 @@ describe("Session.load", () => {
         content: [{ type: "tool_use" as const, toolCallId: "tc1", name: "myTool", input: {} }],
       },
     ];
-    const res: SessionResponse = {
-      sessionId: "s1",
-      agent: { name: "test-agent" },
-      tools,
-      history: { full: history },
-    };
-    vi.stubGlobal("fetch", mockFetch(res));
-    const { pending } = await Session.load(client, "s1", [agentInfo], "full");
+    vi.stubGlobal("fetch", mockFetch({ history: { full: history } }));
+    const res: SessionResponse = { sessionId: "s1", agent: { name: "test-agent" }, tools };
+    const { pending } = await Session.load(client, res, agentInfo, "full");
     expect(pending.client).toEqual([{ toolCallId: "tc1", name: "myTool", input: {} }]);
     expect(pending.server).toEqual([]);
   });
 
-  it("calls getSession with correct history param", async () => {
-    const fetch = mockFetch({
-      sessionId: "s1",
-      agent: { name: "test-agent" },
-    } satisfies SessionResponse);
+  it("calls getSessionHistory with correct type param", async () => {
+    const fetch = mockFetch({ history: { compacted: [] } });
     vi.stubGlobal("fetch", fetch);
-    await Session.load(client, "s1", [agentInfo], "compacted");
-    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1?history=compacted`);
+    await Session.load(client, sessionRes, agentInfo, "compacted");
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1/history?type=compacted`);
   });
 
-  it("throws if agent name not found in list", async () => {
-    const res: SessionResponse = { sessionId: "s1", agent: { name: "unknown-agent" } };
-    vi.stubGlobal("fetch", mockFetch(res));
-    await expect(Session.load(client, "s1", [agentInfo])).rejects.toThrow(
-      "Unknown agent: unknown-agent",
-    );
+  it("does not fetch when no history requested", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await Session.load(client, sessionRes, agentInfo);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 

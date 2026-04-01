@@ -66,7 +66,7 @@ const agent = new Agent("basic-agent", {
 
 const handler: Handler = {
   getMeta() {
-    return { version: 1, agents: [agent.info] };
+    return { version: 2, agents: [agent.info] };
   },
 
   createSession(
@@ -92,16 +92,21 @@ const handler: Handler = {
     return session.runTurn(req);
   },
 
-  async getSession(sessionId: string, history?: "compacted" | "full") {
+  async getSession(sessionId: string) {
+    const session = sessions.get(sessionId);
+    if (!session) throw new Error(`Session not found: ${sessionId}`);
+    return session.toSessionResponse();
+  },
+
+  async getSessionHistory(sessionId: string, type: "compacted" | "full") {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     // history is never compacted, so compacted and full are the same
-    const historyData = history ? { [history]: session.history } : undefined;
-    return { ...session.toSessionResponse(), history: historyData };
+    return session.history;
   },
 
   async listSessions() {
-    return { sessions: [...sessions.keys()] };
+    return { sessions: [...sessions.values()].map((s) => s.toSessionResponse()) };
   },
 
   async deleteSession(sessionId: string) {

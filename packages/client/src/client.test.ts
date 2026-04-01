@@ -59,14 +59,14 @@ describe("Client", () => {
   });
 
   it("sends Authorization header", async () => {
-    const fetch = mockFetch({ version: 1, agents: [] } satisfies MetaResponse);
+    const fetch = mockFetch({ version: 2, agents: [] } satisfies MetaResponse);
     vi.stubGlobal("fetch", fetch);
     await client.getMeta();
     expect(fetch.mock.calls[0][1].headers["Authorization"]).toBe(`Bearer ${API_KEY}`);
   });
 
   it("getMeta: GET /meta", async () => {
-    const meta: MetaResponse = { version: 1, agents: [] };
+    const meta: MetaResponse = { version: 2, agents: [] };
     vi.stubGlobal("fetch", mockFetch(meta));
     expect(await client.getMeta()).toEqual(meta);
   });
@@ -77,22 +77,22 @@ describe("Client", () => {
     expect(await client.getSession("s1")).toEqual(session);
   });
 
-  it("getSession: appends ?history=compacted", async () => {
-    const fetch = mockFetch({ sessionId: "s1", agent: { name: "a" } } satisfies SessionResponse);
+  it("getSessionHistory: appends ?type=compacted", async () => {
+    const fetch = mockFetch({ history: { compacted: [] } });
     vi.stubGlobal("fetch", fetch);
-    await client.getSession("s1", "compacted");
-    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1?history=compacted`);
+    await client.getSessionHistory("s1", "compacted");
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1/history?type=compacted`);
   });
 
-  it("getSession: appends ?history=full", async () => {
-    const fetch = mockFetch({ sessionId: "s1", agent: { name: "a" } } satisfies SessionResponse);
+  it("getSessionHistory: appends ?type=full", async () => {
+    const fetch = mockFetch({ history: { full: [] } });
     vi.stubGlobal("fetch", fetch);
-    await client.getSession("s1", "full");
-    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1?history=full`);
+    await client.getSessionHistory("s1", "full");
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1/history?type=full`);
   });
 
   it("listSessions: GET /sessions without cursor", async () => {
-    const res: SessionListResponse = { sessions: ["s1"] };
+    const res: SessionListResponse = { sessions: [{ sessionId: "s1", agent: { name: "a" } }] };
     const fetch = mockFetch(res);
     vi.stubGlobal("fetch", fetch);
     await client.listSessions();
@@ -107,20 +107,22 @@ describe("Client", () => {
   });
 
   it("listAllSessions: paginates until no next", async () => {
+    const s1: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
+    const s2: SessionResponse = { sessionId: "s2", agent: { name: "a" } };
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ sessions: ["s1"], next: "c1" }),
+        json: () => Promise.resolve({ sessions: [s1], next: "c1" }),
       })
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ sessions: ["s2"] }),
+        json: () => Promise.resolve({ sessions: [s2] }),
       });
     vi.stubGlobal("fetch", fetch);
-    expect(await client.listAllSessions()).toEqual(["s1", "s2"]);
+    expect(await client.listAllSessions()).toEqual([s1, s2]);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 

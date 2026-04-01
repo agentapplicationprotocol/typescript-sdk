@@ -64,7 +64,7 @@ const agent = new Agent("compact-history-agent", {
 
 const handler: Handler = {
   getMeta() {
-    return { version: 1, agents: [agent.info] };
+    return { version: 2, agents: [agent.info] };
   },
 
   createSession(
@@ -88,21 +88,20 @@ const handler: Handler = {
     return session.runTurn(req);
   },
 
-  async getSession(sessionId: string, history?: "compacted" | "full") {
+  async getSession(sessionId: string) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    // history exposes both the compacted window and the full uncompacted history
-    const historyData =
-      history === "compacted"
-        ? { compacted: session.history }
-        : history === "full"
-          ? { full: session.fullHistory }
-          : undefined;
-    return { ...session.toSessionResponse(), history: historyData };
+    return session.toSessionResponse();
+  },
+
+  async getSessionHistory(sessionId: string, type: "compacted" | "full") {
+    const session = sessions.get(sessionId);
+    if (!session) throw new Error(`Session not found: ${sessionId}`);
+    return type === "compacted" ? session.history : session.fullHistory;
   },
 
   async listSessions() {
-    return { sessions: [...sessions.keys()] };
+    return { sessions: [...sessions.values()].map((s) => s.toSessionResponse()) };
   },
 
   async deleteSession(sessionId: string) {

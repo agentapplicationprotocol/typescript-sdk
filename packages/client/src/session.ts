@@ -4,6 +4,7 @@ import {
   AgentResponse,
   CreateSessionRequest,
   HistoryMessage,
+  SessionResponse,
   SessionTurnRequest,
   sseEventsToMessages,
   SSEEvent,
@@ -87,21 +88,23 @@ export class Session {
 
   /**
    * Loads an existing session and resolves any pending tool use.
-   * @param agents - List of known agents to match against the session's agent name.
+   * @param res - Session response from `client.getSession()`.
+   * @param agentInfo - Agent metadata matching the session's agent.
+   * @param history - If provided, fetches history of the given type.
    * @returns The loaded session and any pending tool calls.
    */
   static async load(
     client: Client,
-    sessionId: string,
-    agents: AgentInfo[],
+    res: SessionResponse,
+    agentInfo: AgentInfo,
     history?: "full" | "compacted",
   ): Promise<{ session: Session; pending: PendingToolUse }> {
-    const res = await client.getSession(sessionId, history);
-    const agentInfo = agents.find((a) => a.name === res.agent.name);
-    if (!agentInfo) throw new Error(`Unknown agent: ${res.agent.name}`);
-    const session = new Session(sessionId, client, agentInfo, res.agent, res.tools);
-    const h = history === "compacted" ? res.history?.compacted : res.history?.full;
-    session.history.push(...(h ?? []));
+    const session = new Session(res.sessionId, client, agentInfo, res.agent, res.tools);
+    if (history) {
+      const histRes = await client.getSessionHistory(res.sessionId, history);
+      const h = history === "compacted" ? histRes.history.compacted : histRes.history.full;
+      session.history.push(...(h ?? []));
+    }
     return { session, pending: resolvePendingToolUse(session.history, session.tools) };
   }
 
