@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `GET /session/:id/history?type=compacted|full` endpoint (`SessionHistoryResponse` type)
 - Added `Client.getSessionHistory(sessionId, type)` method
 - Protocol version bumped to `2`
+- `Client.getMeta()` now throws an error if server protocol version doesn't match expected version
 
 ## [0.5.0] - 2026-04-01
 

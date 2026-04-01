@@ -52,7 +52,7 @@ beforeEach(() => {
 describe("Client", () => {
   it("strips trailing slash from baseUrl", () => {
     const c = new Client({ baseUrl: BASE_URL + "/", apiKey: API_KEY });
-    const fetch = mockFetch({});
+    const fetch = mockFetch({ version: 2, agents: [] } satisfies MetaResponse);
     vi.stubGlobal("fetch", fetch);
     c.getMeta();
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/meta`);

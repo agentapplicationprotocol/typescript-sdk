@@ -76,8 +76,12 @@ export class Client {
   }
 
   /** GET /meta */
-  getMeta(): Promise<MetaResponse> {
-    return this.request("GET", "/meta");
+  async getMeta(): Promise<MetaResponse> {
+    const meta = await this.request<MetaResponse>("GET", "/meta");
+    if (meta.version !== 2) {
+      throw new Error(`Protocol version mismatch: expected 2, got ${meta.version}`);
+    }
+    return meta;
   }
 
   /** GET /sessions */
