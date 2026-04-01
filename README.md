@@ -7,12 +7,12 @@ TypeScript SDK for the [Agent Application Protocol (AAP)](https://github.com/age
 
 ## Packages
 
-| Package                                                 | Description                                |
-| ------------------------------------------------------- | ------------------------------------------ |
-| [`@agentapplicationprotocol/sdk`](./packages/sdk)       | Umbrella package — re-exports all packages |
-| [`@agentapplicationprotocol/core`](./packages/core)     | Shared types and utilities                 |
-| [`@agentapplicationprotocol/client`](./packages/client) | AAP client                                 |
-| [`@agentapplicationprotocol/server`](./packages/server) | AAP server                                 |
+| Package                                                                                              | Description                                |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| [`@agentapplicationprotocol/sdk`](https://www.npmjs.com/package/@agentapplicationprotocol/sdk)       | Umbrella package — re-exports all packages |
+| [`@agentapplicationprotocol/core`](https://www.npmjs.com/package/@agentapplicationprotocol/core)     | Shared types and utilities                 |
+| [`@agentapplicationprotocol/client`](https://www.npmjs.com/package/@agentapplicationprotocol/client) | AAP client                                 |
+| [`@agentapplicationprotocol/server`](https://www.npmjs.com/package/@agentapplicationprotocol/server) | AAP server                                 |
 
 ## Installation
 
