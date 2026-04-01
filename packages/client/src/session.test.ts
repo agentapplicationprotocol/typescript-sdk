@@ -154,7 +154,7 @@ describe("Session.create", () => {
     const events: SSEEvent[] = [
       { event: "session_start", sessionId: "s2" },
       { event: "turn_start" },
-      { event: "message", role: "assistant", content: "hey" },
+      { event: "text", text: "hey" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
     vi.stubGlobal("fetch", mockSSEFetch(events));
@@ -202,7 +202,7 @@ describe("Session.send", () => {
     const session = await makeSession();
     const events: SSEEvent[] = [
       { event: "turn_start" },
-      { event: "message", role: "assistant", content: "streamed" },
+      { event: "text", text: "streamed" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
     vi.stubGlobal("fetch", mockSSEFetch(events));

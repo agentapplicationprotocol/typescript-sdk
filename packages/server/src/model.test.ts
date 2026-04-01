@@ -24,7 +24,12 @@ describe("ModelProvider", () => {
 
 // --- AiModelProvider ---
 
-function makeLM(): LanguageModel {
+type MockLM = LanguageModel & {
+  doStream: ReturnType<typeof vi.fn>;
+  doGenerate: ReturnType<typeof vi.fn>;
+};
+
+function makeLM(): MockLM {
   return {
     specificationVersion: "v2",
     provider: "test",
@@ -32,11 +37,11 @@ function makeLM(): LanguageModel {
     defaultObjectGenerationMode: undefined,
     doStream: vi.fn(),
     doGenerate: vi.fn(),
-  } as unknown as LanguageModel;
+  } as unknown as MockLM;
 }
 
-function mockStream(lm: LanguageModel, chunks: object[]) {
-  vi.mocked(lm.doStream).mockResolvedValue({
+function mockStream(lm: MockLM, chunks: object[]) {
+  lm.doStream.mockResolvedValue({
     stream: new ReadableStream({
       start(controller) {
         for (const chunk of chunks) controller.enqueue(chunk);
@@ -48,8 +53,8 @@ function mockStream(lm: LanguageModel, chunks: object[]) {
   } as any);
 }
 
-function mockGenerate(lm: LanguageModel, finishReason: string, content: object[]) {
-  vi.mocked(lm.doGenerate).mockResolvedValue({
+function mockGenerate(lm: MockLM, finishReason: string, content: object[]) {
+  lm.doGenerate.mockResolvedValue({
     finishReason,
     usage: { inputTokens: 1, outputTokens: 1 },
     content,

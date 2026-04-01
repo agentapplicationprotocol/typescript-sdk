@@ -101,7 +101,7 @@ describe("Session", () => {
           }),
       });
       const s = new Session("s", agent, model, agentConfig);
-      const res = await s.runTurn({ messages: [userMsg] });
+      const res = await (s.runTurn({ messages: [userMsg] }) as Promise<AgentResponse>);
       expect(res.stopReason).toBe("end_turn");
       expect(model.call).toHaveBeenCalledTimes(2);
     });

@@ -1,4 +1,4 @@
-import type { AgentResponse, HistoryMessage, SSEEvent } from "@agentapplicationprotocol/core";
+import type { AgentResponse, DeltaSSEEvent, HistoryMessage } from "@agentapplicationprotocol/core";
 import { Session } from "../../session.js";
 
 /** In-memory session store. */
@@ -30,7 +30,7 @@ export class TruncatedHistorySession extends Session {
   }
 
   /** Streams the model response, then compacts history. */
-  protected async *stream(messages: HistoryMessage[]): AsyncIterable<SSEEvent> {
+  protected async *stream(messages: HistoryMessage[]): AsyncIterable<DeltaSSEEvent> {
     const before = this.history.length;
     for await (const e of super.stream(messages)) yield e;
     this.syncAndCompact(before);
