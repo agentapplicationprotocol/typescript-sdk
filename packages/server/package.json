@@ -1,6 +1,6 @@
 {
   "name": "@agentapplicationprotocol/server",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "AAP server",
   "keywords": [
     "aap",
@@ -22,6 +22,7 @@
   },
   "files": [
     "dist/src",
+    "!dist/src/examples",
     "!dist/src/**/*.test.*"
   ],
   "main": "dist/src/index.js",

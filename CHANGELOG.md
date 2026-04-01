@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Breaking Changes
+## [0.5.0] - 2026-04-01
+
+### Changes
 
 - `Session.load()` now accepts `agents: AgentInfo[]` instead of a single `agentInfo: AgentInfo`; throws if the session's agent name is not found in the list
 
@@ -112,7 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of the TypeScript SDK for the Agent Application Protocol (AAP)
 
-[unreleased]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.2...HEAD
+[unreleased]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.3.1...v0.4.0
