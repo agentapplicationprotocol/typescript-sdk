@@ -16,9 +16,9 @@
 
 import * as readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { Client } from "../client.js";
-import { Session } from "../session.js";
-import type { PendingToolUse } from "../session.js";
+import { Client } from "../../client.js";
+import { Session } from "../../session.js";
+import type { PendingToolUse } from "../../session.js";
 import type { AgentInfo, SSEEvent, StreamMode, ToolSpec } from "@agentapplicationprotocol/core";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3010";
@@ -34,7 +34,12 @@ const CLIENT_TOOLS: Record<string, { spec: ToolSpec; exec: (input: unknown) => u
       description: "Evaluate a mathematical expression",
       inputSchema: {
         type: "object",
-        properties: { expression: { type: "string", description: "Math expression to evaluate" } },
+        properties: {
+          expression: {
+            type: "string",
+            description: "Math expression to evaluate",
+          },
+        },
         required: ["expression"],
       },
     },
@@ -221,7 +226,11 @@ async function resolvePending(session: Session, pending: PendingToolUse): Promis
       }
       const result = String(tool.exec(t.input));
       console.log(`[${t.name} → ${result}]`);
-      messages.push({ role: "tool", toolCallId: t.toolCallId, content: result });
+      messages.push({
+        role: "tool",
+        toolCallId: t.toolCallId,
+        content: result,
+      });
     }
 
     // untrusted server tools — prompt for permission
