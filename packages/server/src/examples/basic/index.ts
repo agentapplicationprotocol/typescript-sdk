@@ -66,7 +66,7 @@ const agent = new Agent("basic-agent", {
 
 const handler: Handler = {
   getMeta() {
-    return { version: 2, agents: [agent.info] };
+    return { agents: [agent.info] };
   },
 
   createSession(

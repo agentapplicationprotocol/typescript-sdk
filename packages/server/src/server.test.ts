@@ -27,7 +27,7 @@ async function* sseEvents(): AsyncIterable<SSEEvent> {
 
 function makeHandler(overrides: Partial<Handler> = {}): Handler {
   return {
-    getMeta: vi.fn().mockReturnValue(meta),
+    getMeta: vi.fn().mockReturnValue({ agents: [] }),
     listSessions: vi.fn().mockResolvedValue(sessionList),
     getSession: vi.fn().mockResolvedValue(session),
     getSessionHistory: vi.fn().mockResolvedValue([] satisfies HistoryMessage[]),
@@ -73,23 +73,21 @@ describe("aap middleware", () => {
       sessionId: "s1",
       agent: { name: "a", options: { key: "mysecret", model: "gpt-4" } },
     };
-    const secretMeta: MetaResponse = {
-      version: 2,
-      agents: [
-        {
-          name: "a",
-          version: "1.0.0",
-          options: [
-            { type: "secret", name: "key", default: "" },
-            { type: "text", name: "model", default: "" },
-          ],
-        },
-      ],
-    };
     const app = makeApp(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(secretSession),
-        getMeta: vi.fn().mockReturnValue(secretMeta),
+        getMeta: vi.fn().mockReturnValue({
+          agents: [
+            {
+              name: "a",
+              version: "1.0.0",
+              options: [
+                { type: "secret", name: "key", default: "" },
+                { type: "text", name: "model", default: "" },
+              ],
+            },
+          ],
+        }),
       }),
     );
     const res = await app.fetch(req("GET", "/session/s1"));
@@ -199,7 +197,7 @@ describe("aap middleware", () => {
     const app = makeApp(
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
-        getMeta: vi.fn().mockReturnValue({ version: 2, agents: [] }),
+        getMeta: vi.fn().mockReturnValue({ agents: [] }),
       }),
     );
     const res = await app.fetch(req("GET", "/session/s1"));
@@ -215,7 +213,6 @@ describe("aap middleware", () => {
       makeHandler({
         getSession: vi.fn().mockResolvedValue(sessionWithOptions),
         getMeta: vi.fn().mockReturnValue({
-          version: 2,
           agents: [
             {
               name: "a",

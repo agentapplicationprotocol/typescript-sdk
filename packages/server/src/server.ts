@@ -17,7 +17,7 @@ import {
 // --- Handler interface ---
 
 export interface Handler {
-  getMeta(): MetaResponse;
+  getMeta(): Omit<MetaResponse, "version">;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse>;
   getSessionHistory(sessionId: string, type: "compacted" | "full"): Promise<HistoryMessage[]>;
@@ -80,7 +80,7 @@ function redactSecretOptions(session: SessionResponse, agents: AgentInfo[]): Ses
 export function aap(handler: Handler): Hono {
   const router = new Hono();
 
-  router.get("/meta", (c) => c.json(handler.getMeta()));
+  router.get("/meta", (c) => c.json({ version: 2, ...handler.getMeta() } satisfies MetaResponse));
 
   router.put("/session", async (c) => {
     const req = await c.req.json<CreateSessionRequest>();
@@ -104,8 +104,8 @@ export function aap(handler: Handler): Hono {
 
   router.get("/session/:id", async (c) => {
     const session = await handler.getSession(c.req.param("id"));
-    const meta = handler.getMeta();
-    return c.json(redactSecretOptions(session, meta.agents));
+    const { agents } = handler.getMeta();
+    return c.json(redactSecretOptions(session, agents));
   });
 
   router.get("/session/:id/history", async (c) => {

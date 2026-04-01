@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: `GET /session/:id` no longer accepts `?history` query parameter or returns history in the response
 - **BREAKING**: `Handler.getSession` no longer accepts a `history` parameter; returns `SessionResponse` without history
 - **BREAKING**: `Handler.getSessionHistory` now returns `HistoryMessage[]` instead of `SessionHistoryResponse`; the router handles response formatting
+- **BREAKING**: `Handler.getMeta` now returns `Omit<MetaResponse, "version">` instead of `MetaResponse`; the router adds the protocol version
 - **BREAKING**: `Session.load()` now accepts `(client, sessionResponse, agentInfo, history?)` instead of fetching the session internally
 - **BREAKING**: `Client.listAllSessions()` now returns `SessionResponse[]` instead of `string[]`
 - **BREAKING**: `MetaResponse.version` type narrowed from `number` to `2`
