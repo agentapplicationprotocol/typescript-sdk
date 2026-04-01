@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Corrected `main` and `types` entry points in all packages from `dist/index.*` to `dist/src/index.*` to match actual TypeScript build output
+- Added `files` field to all packages to exclude `tsconfig.tsbuildinfo`, test files, and examples from the published tarball
 
 ## [0.4.1] - 2026-04-01
 

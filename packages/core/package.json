@@ -20,9 +20,8 @@
     "directory": "packages/core"
   },
   "files": [
-    "dist",
-    "!dist/**/*.test.js",
-    "!dist/**/*.test.d.ts"
+    "dist/src",
+    "!dist/src/**/*.test.*"
   ],
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
