@@ -237,9 +237,9 @@ export interface SessionResponse {
   /** Application-side tools declared for this session. */
   tools?: ToolSpec[];
   history?: {
-    /** Omitted if the server chooses not to expose. */
+    /** Omitted if the server chooses not to expose. Present when `?history=compacted` */
     compacted?: HistoryMessage[];
-    /** Omitted if the server chooses not to expose. */
+    /** Omitted if the server chooses not to expose. Present when `?history=full` */
     full?: HistoryMessage[];
   };
 }
