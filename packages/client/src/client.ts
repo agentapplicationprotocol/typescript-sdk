@@ -101,8 +101,11 @@ export class Client {
   }
 
   /** GET /session/:id */
-  getSession(sessionId: string): Promise<SessionResponse> {
-    return this.request("GET", `/session/${sessionId}`);
+  getSession(sessionId: string, history?: "compacted" | "full"): Promise<SessionResponse> {
+    const path = history
+      ? `/session/${sessionId}?${new URLSearchParams({ history }).toString()}`
+      : `/session/${sessionId}`;
+    return this.request("GET", path);
   }
 
   /** PUT /session — non-streaming */

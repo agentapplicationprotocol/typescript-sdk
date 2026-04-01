@@ -92,14 +92,12 @@ const handler: Handler = {
     return session.runTurn(req);
   },
 
-  async getSession(sessionId: string) {
+  async getSession(sessionId: string, history?: "compacted" | "full") {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     // history is never compacted, so compacted and full are the same
-    return {
-      ...session.toSessionResponse(),
-      history: { compacted: session.history, full: session.history },
-    };
+    const historyData = history ? { [history]: session.history } : undefined;
+    return { ...session.toSessionResponse(), history: historyData };
   },
 
   async listSessions() {

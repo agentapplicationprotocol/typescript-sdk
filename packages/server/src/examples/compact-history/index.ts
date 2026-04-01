@@ -88,14 +88,17 @@ const handler: Handler = {
     return session.runTurn(req);
   },
 
-  async getSession(sessionId: string) {
+  async getSession(sessionId: string, history?: "compacted" | "full") {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     // history exposes both the compacted window and the full uncompacted history
-    return {
-      ...session.toSessionResponse(),
-      history: { compacted: session.history, full: session.fullHistory },
-    };
+    const historyData =
+      history === "compacted"
+        ? { compacted: session.history }
+        : history === "full"
+          ? { full: session.fullHistory }
+          : undefined;
+    return { ...session.toSessionResponse(), history: historyData };
   },
 
   async listSessions() {

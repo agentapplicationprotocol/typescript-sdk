@@ -18,7 +18,7 @@ import {
 export interface Handler {
   getMeta(): MetaResponse;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
-  getSession(sessionId: string): Promise<SessionResponse>;
+  getSession(sessionId: string, history?: "compacted" | "full"): Promise<SessionResponse>;
   /** The last message in `req.messages` is guaranteed to be a user message. */
   createSession(
     req: CreateSessionRequest,
@@ -101,7 +101,16 @@ export function aap(handler: Handler): Hono {
   });
 
   router.get("/session/:id", async (c) => {
-    const session = await handler.getSession(c.req.param("id"));
+    const historyParam = c.req.query("history");
+    const history =
+      historyParam === "compacted" || historyParam === "full" ? historyParam : undefined;
+    const session = await handler.getSession(c.req.param("id"), history);
+    // strip history fields not matching the requested mode
+    if (session.history) {
+      if (history === "compacted") delete session.history.full;
+      else if (history === "full") delete session.history.compacted;
+      else session.history = undefined;
+    }
     const meta = handler.getMeta();
     return c.json(redactSecretOptions(session, meta.agents));
   });

@@ -77,6 +77,20 @@ describe("Client", () => {
     expect(await client.getSession("s1")).toEqual(session);
   });
 
+  it("getSession: appends ?history=compacted", async () => {
+    const fetch = mockFetch({ sessionId: "s1", agent: { name: "a" } } satisfies SessionResponse);
+    vi.stubGlobal("fetch", fetch);
+    await client.getSession("s1", "compacted");
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1?history=compacted`);
+  });
+
+  it("getSession: appends ?history=full", async () => {
+    const fetch = mockFetch({ sessionId: "s1", agent: { name: "a" } } satisfies SessionResponse);
+    vi.stubGlobal("fetch", fetch);
+    await client.getSession("s1", "full");
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1?history=full`);
+  });
+
   it("listSessions: GET /sessions without cursor", async () => {
     const res: SessionListResponse = { sessions: ["s1"] };
     const fetch = mockFetch(res);

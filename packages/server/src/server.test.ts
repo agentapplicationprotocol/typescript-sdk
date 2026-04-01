@@ -227,4 +227,50 @@ describe("aap middleware", () => {
     const res = await app.fetch(req("GET", "/session/s1"));
     expect(await res.json()).toEqual(sessionWithOptions);
   });
+
+  it("GET /session/:id?history=compacted passes param and strips full", async () => {
+    const handler = makeHandler({
+      getSession: vi.fn().mockResolvedValue({
+        ...session,
+        history: { compacted: [], full: [] },
+      }),
+    });
+    const app = makeApp(handler);
+    const res = await app.fetch(req("GET", "/session/s1?history=compacted"));
+    expect(handler.getSession).toHaveBeenCalledWith("s1", "compacted");
+    expect(await res.json()).toEqual({ ...session, history: { compacted: [] } });
+  });
+
+  it("GET /session/:id?history=full passes param and strips compacted", async () => {
+    const handler = makeHandler({
+      getSession: vi.fn().mockResolvedValue({
+        ...session,
+        history: { compacted: [], full: [] },
+      }),
+    });
+    const app = makeApp(handler);
+    const res = await app.fetch(req("GET", "/session/s1?history=full"));
+    expect(handler.getSession).toHaveBeenCalledWith("s1", "full");
+    expect(await res.json()).toEqual({ ...session, history: { full: [] } });
+  });
+
+  it("GET /session/:id without ?history passes undefined and strips history from response", async () => {
+    const handler = makeHandler({
+      getSession: vi.fn().mockResolvedValue({
+        ...session,
+        history: { compacted: [], full: [] },
+      }),
+    });
+    const app = makeApp(handler);
+    const res = await app.fetch(req("GET", "/session/s1"));
+    expect(handler.getSession).toHaveBeenCalledWith("s1", undefined);
+    expect(await res.json()).toEqual(session);
+  });
+
+  it("GET /session/:id with invalid ?history passes undefined", async () => {
+    const handler = makeHandler();
+    const app = makeApp(handler);
+    await app.fetch(req("GET", "/session/s1?history=invalid"));
+    expect(handler.getSession).toHaveBeenCalledWith("s1", undefined);
+  });
 });
