@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: Protocol version bumped to `3`
+- **BREAKING**: `ToolSpec.inputSchema` renamed to `ToolSpec.parameters`
+- **BREAKING**: Endpoints redesigned to follow REST conventions:
+  - `PUT /session` → `POST /sessions`
+  - `GET /session/:id` → `GET /sessions/:id`
+  - `DELETE /session/:id` → `DELETE /sessions/:id`
+  - `GET /session/:id/history` → `GET /sessions/:id/history`
+  - `POST /session/:id` → `POST /sessions/:id/turns`
+- **BREAKING**: Session creation separated from turn execution — `POST /sessions` only creates the session and optionally seeds history; all agent execution happens via `POST /sessions/:id/turns`
+- **BREAKING**: `CreateSessionRequest` — `messages` is now optional, `stream` field removed
+- **BREAKING**: `CreateSessionResponse` no longer extends `AgentResponse`; now only contains `{ sessionId }`
+- **BREAKING**: `SessionStartEvent` removed; `SSEEvent` union no longer includes it
+- **BREAKING**: `Session` constructor (server) — `clientTools` and `history` are now required parameters
+- **BREAKING**: `Session` constructor (client) — `tools` and `history` are now required parameters
+- **BREAKING**: `Session.create()` (client) — no longer accepts `firstTurn` or `cb`; returns `Session` directly instead of `{ session, pending }`
+- **BREAKING**: `Session.runNewSession()` (server) removed
+- "Application-side tools" renamed to "client-side tools" in comments and documentation
+
 ## [0.6.1] - 2026-04-01
 
 ### Fixed
