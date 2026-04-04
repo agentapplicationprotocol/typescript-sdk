@@ -25,7 +25,7 @@ export class Session {
   sessionId: string;
   agent: Agent;
   agentConfig: AgentConfig;
-  /** Application-side tools declared for this session. */
+  /** Client-side tools declared for this session. */
   clientTools: ToolSpec[];
   /** Accumulated conversation history across all turns. */
   history: HistoryMessage[];

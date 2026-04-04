@@ -29,7 +29,7 @@ export class Session {
   /** Metadata for the agent this session is running against. */
   agent: AgentInfo;
   agentConfig: AgentConfig;
-  /** Application-side tools declared for this session. */
+  /** Client-side tools declared for this session. */
   tools: ToolSpec[];
   /** Accumulated conversation history across all turns. */
   history: HistoryMessage[];
@@ -91,7 +91,10 @@ export class Session {
       const h = history === "compacted" ? histRes.history.compacted : histRes.history.full;
       session.history.push(...(h ?? []));
     }
-    return { session, pending: resolvePendingToolUse(session.history, session.tools) };
+    return {
+      session,
+      pending: resolvePendingToolUse(session.history, session.tools),
+    };
   }
 
   /**
