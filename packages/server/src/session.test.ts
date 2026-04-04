@@ -306,4 +306,101 @@ describe("Session", () => {
       expect(s.agentConfig.options).toEqual({ model: "gpt-5" });
     });
   });
+
+  describe("runTurn (delta mode) — untrusted tool stops loop", () => {
+    it("stops at untrusted tool in delta mode", async () => {
+      const agent = makeAgent();
+      const agentConfig: AgentConfig = { name: "test-agent", tools: [] }; // echo not trusted
+      const model = makeModel({
+        stream: vi.fn().mockImplementationOnce(async function* () {
+          yield {
+            event: "tool_call" as const,
+            toolCallId: "c1",
+            name: "echo",
+            input: { msg: "hi" },
+          };
+          yield { event: "turn_stop" as const, stopReason: "tool_use" as const };
+        }),
+      });
+      const s = new Session("s", agent, model, agentConfig, [], []);
+      const events = [];
+      for await (const e of s.runTurn({
+        messages: [userMsg],
+        stream: "delta",
+      }) as AsyncIterable<DeltaSSEEvent>)
+        events.push(e);
+      expect(events.at(-1)!.event).toBe("turn_stop");
+      expect(model.stream).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("runTurn (message mode) — tool_use block and untrusted stop", () => {
+    it("yields tool_call event for tool_use blocks in message mode", async () => {
+      const model = makeModel({
+        call: vi.fn().mockResolvedValue({
+          stopReason: "tool_use",
+          messages: [
+            {
+              role: "assistant",
+              content: [{ type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hi" } }],
+            },
+          ],
+        }),
+      });
+      const s = makeSession({ name: "test-agent" }, model);
+      const events = [];
+      for await (const e of s.runTurn({
+        messages: [userMsg],
+        stream: "message",
+      }) as AsyncIterable<SSEEvent>)
+        events.push(e);
+      expect(events.some((e) => e.event === "tool_call")).toBe(true);
+    });
+
+    it("stops at untrusted tool in message mode", async () => {
+      const agent = makeAgent();
+      const agentConfig: AgentConfig = { name: "test-agent", tools: [] };
+      const model = makeModel({
+        call: vi.fn().mockResolvedValue({
+          stopReason: "tool_use",
+          messages: [
+            {
+              role: "assistant",
+              content: [{ type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hi" } }],
+            },
+          ],
+        }),
+      });
+      const s = new Session("s", agent, model, agentConfig, [], []);
+      const events = [];
+      for await (const e of s.runTurn({
+        messages: [userMsg],
+        stream: "message",
+      }) as AsyncIterable<SSEEvent>)
+        events.push(e);
+      expect(events.at(-1)!.event).toBe("turn_stop");
+      expect(model.call).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("lastToolUses", () => {
+    it("returns empty array when last assistant message has string content", async () => {
+      const s = makeSession();
+      s.history = [{ role: "assistant", content: "hello" }];
+      // runTurnNone will call lastToolUses; with string content it should return []
+      const model = makeModel({
+        call: vi.fn().mockResolvedValue({ stopReason: "end_turn", messages: [] }),
+      });
+      const s2 = new Session(
+        "s",
+        makeAgent(),
+        model,
+        { name: "test-agent" },
+        [],
+        [{ role: "assistant", content: "hello" }],
+      );
+      const res = (await s2.runTurn({ messages: [userMsg] })) as AgentResponse;
+      expect(res.stopReason).toBe("end_turn");
+    });
+  });
 });

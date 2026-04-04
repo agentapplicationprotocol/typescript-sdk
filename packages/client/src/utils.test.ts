@@ -56,4 +56,21 @@ describe("resolvePendingToolUse", () => {
     ];
     expect(resolvePendingToolUse(messages, [clientTool])).toEqual({ client: [], server: [] });
   });
+
+  it("returns empty when last assistant message has string content", () => {
+    const messages: HistoryMessage[] = [{ role: "assistant", content: "hello" }];
+    expect(resolvePendingToolUse(messages, [clientTool])).toEqual({ client: [], server: [] });
+  });
+
+  it("treats all tools as server-side when clientTools is omitted", () => {
+    const messages: HistoryMessage[] = [
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", toolCallId: "c1", name: "some_tool", input: {} }],
+      },
+    ];
+    const { client, server } = resolvePendingToolUse(messages);
+    expect(client).toEqual([]);
+    expect(server).toHaveLength(1);
+  });
 });

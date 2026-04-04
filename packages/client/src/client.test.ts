@@ -202,4 +202,9 @@ describe("Client", () => {
     expect(err.method).toBe("GET");
     expect(err.path).toBe("/sessions/x");
   });
+
+  it("getMeta: throws on version mismatch", async () => {
+    vi.stubGlobal("fetch", mockFetch({ version: 2, agents: [] }));
+    await expect(client.getMeta()).rejects.toThrow("Protocol version mismatch");
+  });
 });

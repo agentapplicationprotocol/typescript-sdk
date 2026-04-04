@@ -215,4 +215,40 @@ describe("Session.send", () => {
     const body = JSON.parse(fetch.mock.calls[0][1].body);
     expect(body.agent).toBeUndefined();
   });
+
+  it("omits agent.tools if unchanged", async () => {
+    const session = await makeSession();
+    const tools = [{ name: "echo", trust: true }];
+    session.agentConfig = { name: "test-agent", tools };
+    const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
+    vi.stubGlobal("fetch", fetch);
+    await session.send({ messages: [{ role: "user", content: "hi" }], agent: { tools } });
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(body.agent).toBeUndefined();
+  });
+
+  it("updates agentConfig.tools when changed", async () => {
+    const session = await makeSession();
+    const newTools = [{ name: "echo", trust: true }];
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse),
+    );
+    await session.send({ messages: [{ role: "user", content: "hi" }], agent: { tools: newTools } });
+    expect(session.agentConfig.tools).toEqual(newTools);
+  });
+
+  it("updates agentConfig.options when changed", async () => {
+    const session = await makeSession();
+    session.agentConfig = { name: "test-agent", options: { model: "gpt-4" } };
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse),
+    );
+    await session.send({
+      messages: [{ role: "user", content: "hi" }],
+      agent: { options: { model: "gpt-4o" } },
+    });
+    expect(session.agentConfig.options).toEqual({ model: "gpt-4o" });
+  });
 });

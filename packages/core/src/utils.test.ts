@@ -115,4 +115,13 @@ describe("sseEventsToMessagesAsync", () => {
     expect(messages).toEqual([]);
     expect(stopReason).toBe("tool_use");
   });
+
+  it("handles tool_result with no preceding assistant blocks", () => {
+    const events: SSEEvent[] = [
+      { event: "tool_result", toolCallId: "c1", content: "result" },
+      { event: "turn_stop", stopReason: "tool_use" },
+    ];
+    const [messages] = sseEventsToMessages(events);
+    expect(messages).toEqual([{ role: "tool", toolCallId: "c1", content: "result" }]);
+  });
 });
