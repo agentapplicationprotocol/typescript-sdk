@@ -41,15 +41,15 @@ async function main() {
     rl.close();
   }
 
-  const { session } = await Session.create(
+  const session = await Session.create(
     client,
     {
       agent: { name: agentInfo.name, options: Object.keys(options).length ? options : undefined },
-      messages: [{ role: "user", content: prompts[0] }],
     },
     agentInfo,
   );
 
+  await session.send({ messages: [{ role: "user", content: prompts[0] }] });
   console.log(`\n[user] ${prompts[0]}`);
   console.log(`[assistant] ${extractText(session.history.at(-1)?.content)}\n`);
 

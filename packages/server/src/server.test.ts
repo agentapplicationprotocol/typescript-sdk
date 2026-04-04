@@ -13,10 +13,10 @@ import type {
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 
-const meta: MetaResponse = { version: 2, agents: [] };
+const meta: MetaResponse = { version: 3, agents: [] };
 const session: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
 const agentResponse: AgentResponse = { stopReason: "end_turn", messages: [] };
-const createSessionResponse = { ...agentResponse, sessionId: "s1" };
+const createSessionResponse = { sessionId: "s1" };
 const sessionList: SessionListResponse = { sessions: [session] };
 
 async function* sseEvents(): AsyncIterable<SSEEvent> {
@@ -63,7 +63,7 @@ describe("aap middleware", () => {
 
   it("GET /session/:id returns session", async () => {
     const app = makeApp(makeHandler());
-    const res = await app.fetch(req("GET", "/session/s1"));
+    const res = await app.fetch(req("GET", "/sessions/s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(session);
   });
@@ -90,7 +90,7 @@ describe("aap middleware", () => {
         }),
       }),
     );
-    const res = await app.fetch(req("GET", "/session/s1"));
+    const res = await app.fetch(req("GET", "/sessions/s1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       ...secretSession,
@@ -141,52 +141,29 @@ describe("aap middleware", () => {
     });
   });
 
-  it("PUT /session returns 400 if last message is not a user message", async () => {
+  it("POST /sessions returns 201 with sessionId", async () => {
     const app = makeApp(makeHandler());
-    const res = await app.fetch(
-      req("PUT", "/session", {
-        agent: { name: "a" },
-        messages: [{ role: "assistant", content: "hi" }],
-      }),
-    );
-    expect(res.status).toBe(400);
-  });
-
-  it("PUT /session returns 201 with AgentResponse", async () => {
-    const app = makeApp(makeHandler());
-    const res = await app.fetch(
-      req("PUT", "/session", { agent: { name: "a" }, messages: [{ role: "user", content: "hi" }] }),
-    );
+    const res = await app.fetch(req("POST", "/sessions", { agent: { name: "a" } }));
     expect(res.status).toBe(201);
     expect(await res.json()).toEqual(createSessionResponse);
   });
 
-  it("PUT /session with stream returns SSE", async () => {
-    const app = makeApp(makeHandler({ createSession: vi.fn().mockResolvedValue(sseEvents()) }));
-    const res = await app.fetch(
-      req("PUT", "/session", {
-        agent: { name: "a" },
-        messages: [{ role: "user", content: "hi" }],
-        stream: "message",
-      }),
-    );
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/event-stream");
-  });
-
-  it("POST /session/:id returns AgentResponse", async () => {
+  it("POST /sessions/:id/turns returns AgentResponse", async () => {
     const app = makeApp(makeHandler());
     const res = await app.fetch(
-      req("POST", "/session/s1", { messages: [{ role: "user", content: "hi" }] }),
+      req("POST", "/sessions/s1/turns", { messages: [{ role: "user", content: "hi" }] }),
     );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(agentResponse);
   });
 
-  it("POST /session/:id with stream returns SSE", async () => {
+  it("POST /sessions/:id/turns with stream returns SSE", async () => {
     const app = makeApp(makeHandler({ sendTurn: vi.fn().mockResolvedValue(sseEvents()) }));
     const res = await app.fetch(
-      req("POST", "/session/s1", { messages: [{ role: "user", content: "hi" }], stream: "delta" }),
+      req("POST", "/sessions/s1/turns", {
+        messages: [{ role: "user", content: "hi" }],
+        stream: "delta",
+      }),
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/event-stream");
@@ -194,7 +171,7 @@ describe("aap middleware", () => {
 
   it("DELETE /session/:id returns 204", async () => {
     const app = makeApp(makeHandler());
-    const res = await app.fetch(req("DELETE", "/session/s1"));
+    const res = await app.fetch(req("DELETE", "/sessions/s1"));
     expect(res.status).toBe(204);
   });
 
@@ -234,7 +211,7 @@ describe("aap middleware", () => {
         getMeta: vi.fn().mockReturnValue({ agents: [] }),
       }),
     );
-    const res = await app.fetch(req("GET", "/session/s1"));
+    const res = await app.fetch(req("GET", "/sessions/s1"));
     expect(await res.json()).toEqual(sessionWithOptions);
   });
 
@@ -257,7 +234,7 @@ describe("aap middleware", () => {
         }),
       }),
     );
-    const res = await app.fetch(req("GET", "/session/s1"));
+    const res = await app.fetch(req("GET", "/sessions/s1"));
     expect(await res.json()).toEqual(sessionWithOptions);
   });
 
@@ -265,7 +242,7 @@ describe("aap middleware", () => {
     const messages: HistoryMessage[] = [{ role: "user", content: "hi" }];
     const handler = makeHandler({ getSessionHistory: vi.fn().mockResolvedValue(messages) });
     const app = makeApp(handler);
-    const res = await app.fetch(req("GET", "/session/s1/history?type=compacted"));
+    const res = await app.fetch(req("GET", "/sessions/s1/history?type=compacted"));
     expect(res.status).toBe(200);
     expect(handler.getSessionHistory).toHaveBeenCalledWith("s1", "compacted");
     expect(await res.json()).toEqual({ history: { compacted: messages } });
@@ -275,7 +252,7 @@ describe("aap middleware", () => {
     const messages: HistoryMessage[] = [{ role: "user", content: "hi" }];
     const handler = makeHandler({ getSessionHistory: vi.fn().mockResolvedValue(messages) });
     const app = makeApp(handler);
-    const res = await app.fetch(req("GET", "/session/s1/history?type=full"));
+    const res = await app.fetch(req("GET", "/sessions/s1/history?type=full"));
     expect(res.status).toBe(200);
     expect(handler.getSessionHistory).toHaveBeenCalledWith("s1", "full");
     expect(await res.json()).toEqual({ history: { full: messages } });
@@ -283,7 +260,7 @@ describe("aap middleware", () => {
 
   it("GET /session/:id/history without valid ?type returns 400", async () => {
     const app = makeApp(makeHandler());
-    const res = await app.fetch(req("GET", "/session/s1/history"));
+    const res = await app.fetch(req("GET", "/sessions/s1/history"));
     expect(res.status).toBe(400);
   });
 });

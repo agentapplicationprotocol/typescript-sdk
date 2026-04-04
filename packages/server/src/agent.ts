@@ -69,7 +69,7 @@ export class Agent {
       name,
       title: options.title,
       description: options.description ?? "",
-      inputSchema: z.toJSONSchema(options.inputSchema) as JSONSchema,
+      parameters: z.toJSONSchema(options.inputSchema) as JSONSchema,
     });
     this.tools.set(name, async (input: string) => {
       const output = await exec(options.inputSchema.parse(JSON.parse(input)));

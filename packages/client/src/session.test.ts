@@ -80,7 +80,7 @@ describe("Session.load", () => {
       {
         name: "myTool",
         description: "d",
-        inputSchema: { type: "object" as const, properties: {} },
+        parameters: { type: "object" as const, properties: {} },
       },
     ];
     const history = [
@@ -101,7 +101,7 @@ describe("Session.load", () => {
     const fetch = mockFetch({ history: { compacted: [] } });
     vi.stubGlobal("fetch", fetch);
     await Session.load(client, sessionRes, agentInfo, "compacted");
-    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1/history?type=compacted`);
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions/s1/history?type=compacted`);
   });
 
   it("does not fetch when no history requested", async () => {
@@ -113,57 +113,34 @@ describe("Session.load", () => {
 });
 
 describe("Session.create", () => {
-  it("non-streaming: builds session and history", async () => {
-    const res: CreateSessionResponse = {
-      sessionId: "s1",
-      stopReason: "end_turn",
-      messages: [{ role: "assistant", content: "hi" }],
-    };
-    vi.stubGlobal("fetch", mockFetch(res, 201));
-    const { session, pending } = await Session.create(
-      client,
-      { agent: { name: "test-agent" }, messages: [{ role: "user", content: "hello" }] },
-      agentInfo,
-    );
-    expect(session.sessionId).toBe("s1");
-    expect(session.history).toHaveLength(2);
-    expect(pending).toEqual({ client: [], server: [] });
-  });
-
-  it("streaming: builds session from SSE events and calls cb", async () => {
-    const events: SSEEvent[] = [
-      { event: "session_start", sessionId: "s2" },
-      { event: "turn_start" },
-      { event: "text", text: "hey" },
-      { event: "turn_stop", stopReason: "end_turn" },
-    ];
-    vi.stubGlobal("fetch", mockSSEFetch(events));
-    const cb = vi.fn();
-    const { session } = await Session.create(
+  it("creates session and seeds history from messages", async () => {
+    const createRes: CreateSessionResponse = { sessionId: "s1" };
+    vi.stubGlobal("fetch", mockFetch(createRes, 201));
+    const session = await Session.create(
       client,
       {
         agent: { name: "test-agent" },
-        messages: [{ role: "user", content: "hello" }],
-        stream: "message",
+        messages: [{ role: "system", content: "You are helpful." }],
       },
       agentInfo,
-      cb,
     );
-    expect(session.sessionId).toBe("s2");
-    expect(cb).toHaveBeenCalledTimes(events.length);
+    expect(session.sessionId).toBe("s1");
+    expect(session.history).toEqual([{ role: "system", content: "You are helpful." }]);
+  });
+
+  it("creates session with empty history when no messages", async () => {
+    const createRes: CreateSessionResponse = { sessionId: "s1" };
+    vi.stubGlobal("fetch", mockFetch(createRes, 201));
+    const session = await Session.create(client, { agent: { name: "test-agent" } }, agentInfo);
+    expect(session.history).toEqual([]);
   });
 });
 
 describe("Session.send", () => {
   async function makeSession() {
-    const res: CreateSessionResponse = { sessionId: "s1", stopReason: "end_turn", messages: [] };
-    vi.stubGlobal("fetch", mockFetch(res, 201));
-    const { session } = await Session.create(
-      client,
-      { agent: { name: "test-agent" }, messages: [{ role: "user", content: "hi" }] },
-      agentInfo,
-    );
-    return session;
+    const createRes: CreateSessionResponse = { sessionId: "s1" };
+    vi.stubGlobal("fetch", mockFetch(createRes, 201));
+    return Session.create(client, { agent: { name: "test-agent" } }, agentInfo);
   }
 
   it("non-streaming: appends messages and returns pending", async () => {
@@ -174,7 +151,7 @@ describe("Session.send", () => {
     };
     vi.stubGlobal("fetch", mockFetch(turnRes));
     const pending = await session.send({ messages: [{ role: "user", content: "next" }] });
-    expect(session.history).toHaveLength(3);
+    expect(session.history).toHaveLength(2);
     expect(pending).toEqual({ client: [], server: [] });
   });
 
@@ -194,7 +171,7 @@ describe("Session.send", () => {
   it("strips unchanged tools from request", async () => {
     const session = await makeSession();
     const tools = [
-      { name: "t", description: "d", inputSchema: { type: "object" as const, properties: {} } },
+      { name: "t", description: "d", parameters: { type: "object" as const, properties: {} } },
     ];
     session.tools = tools;
     const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
@@ -207,7 +184,7 @@ describe("Session.send", () => {
   it("sends changed tools and updates session.tools", async () => {
     const session = await makeSession();
     const newTools = [
-      { name: "t2", description: "d", inputSchema: { type: "object" as const, properties: {} } },
+      { name: "t2", description: "d", parameters: { type: "object" as const, properties: {} } },
     ];
     const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
     vi.stubGlobal("fetch", fetch);

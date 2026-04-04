@@ -176,7 +176,7 @@ function toToolSet(tools: ToolSpec[]): ToolSet {
   for (const t of tools) {
     res[t.name] = tool({
       description: t.description,
-      inputSchema: jsonSchema(t.inputSchema),
+      inputSchema: jsonSchema(t.parameters),
     });
   }
   return res;

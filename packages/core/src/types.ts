@@ -79,12 +79,12 @@ export interface ToolPermissionMessage {
 
 // --- Tools ---
 
-/** Declares a tool (application-side in requests; server-side in `/meta`). */
+/** Declares a tool (client-side in requests; server-side in `/meta`). */
 export interface ToolSpec {
   name: string;
   title?: string;
   description: string;
-  inputSchema: JSONSchema;
+  parameters: JSONSchema;
 }
 
 /** References a server-side tool to enable for a session. */
@@ -160,7 +160,7 @@ export interface AgentInfo {
     };
     /** Declares what application-provided inputs the agent supports. */
     application?: {
-      /** Agent accepts application-side tools in requests. */
+      /** Agent accepts client-side tools in requests. */
       tools?: Record<string, never>;
     };
     /** Declares what image input the agent supports. */
@@ -176,7 +176,7 @@ export interface AgentInfo {
 /** Response body for `GET /meta`. */
 export interface MetaResponse {
   /** AAP protocol version. */
-  version: 2;
+  version: 3;
   agents: AgentInfo[];
 }
 
@@ -195,19 +195,17 @@ export interface AgentConfig {
   options?: Record<string, string>;
 }
 
-/** Request body for `PUT /session`. */
+/** Request body for `POST /sessions`. */
 export interface CreateSessionRequest {
   /** Agent configuration. `name` is required at session creation. */
   agent: AgentConfig;
-  /** Response mode. Defaults to `"none"`. */
-  stream?: StreamMode;
-  /** Seed history. The last message must be a `user` message. */
-  messages: HistoryMessage[];
-  /** Application-side tools with full schema. */
+  /** Optional seed history (e.g. system prompt or prior conversation). */
+  messages?: HistoryMessage[];
+  /** Client-side tools with full schema. */
   tools?: ToolSpec[];
 }
 
-/** Request body for `POST /session/:id`. */
+/** Request body for `POST /sessions/:id/turns`. */
 export interface SessionTurnRequest {
   /** Session-level agent overrides. Agent name cannot be changed. Options merged by key. */
   agent?: Omit<AgentConfig, "name">;
@@ -215,7 +213,7 @@ export interface SessionTurnRequest {
   stream?: StreamMode;
   /** A single user message, or a mixed list of tool results and tool permissions. */
   messages: (UserMessage | ToolMessage | ToolPermissionMessage)[];
-  /** Application-side tools. Overrides tools declared at session creation. */
+  /** Client-side tools. Overrides tools declared at session creation. */
   tools?: ToolSpec[];
 }
 
@@ -225,20 +223,21 @@ export interface AgentResponse {
   messages: HistoryMessage[];
 }
 
-export interface CreateSessionResponse extends AgentResponse {
+/** Response body for `POST /sessions`. */
+export interface CreateSessionResponse {
   sessionId: string;
 }
 
-/** Response body for `GET /session/:id` and items in `GET /sessions`. */
+/** Response body for `GET /sessions/:id` and items in `GET /sessions`. */
 export interface SessionResponse {
   sessionId: string;
   /** Secret option values in `agent.options` are redacted (e.g. `"***"`). */
   agent: AgentConfig;
-  /** Application-side tools declared for this session. */
+  /** Client-side tools declared for this session. */
   tools?: ToolSpec[];
 }
 
-/** Response body for `GET /session/:id/history`. */
+/** Response body for `GET /sessions/:id/history`. */
 export interface SessionHistoryResponse {
   history: {
     /** Present when `?type=compacted` */
@@ -263,11 +262,6 @@ export interface ToolCallEvent {
   toolCallId: string;
   name: string;
   input: Record<string, unknown>;
-}
-
-export interface SessionStartEvent {
-  event: "session_start";
-  sessionId: string;
 }
 
 export interface TurnStartEvent {
@@ -311,7 +305,6 @@ export interface TurnStopEvent {
 
 /** SSE event data for `stream: "delta"` and `stream: "message"` responses. */
 export type SSEEvent =
-  | SessionStartEvent // PUT /session only
   | TurnStartEvent
   | TextDeltaEvent // delta mode only
   | ThinkingDeltaEvent // delta mode only

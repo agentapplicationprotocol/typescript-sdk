@@ -52,26 +52,26 @@ beforeEach(() => {
 describe("Client", () => {
   it("strips trailing slash from baseUrl", () => {
     const c = new Client({ baseUrl: BASE_URL + "/", apiKey: API_KEY });
-    const fetch = mockFetch({ version: 2, agents: [] } satisfies MetaResponse);
+    const fetch = mockFetch({ version: 3, agents: [] } satisfies MetaResponse);
     vi.stubGlobal("fetch", fetch);
     c.getMeta();
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/meta`);
   });
 
   it("sends Authorization header", async () => {
-    const fetch = mockFetch({ version: 2, agents: [] } satisfies MetaResponse);
+    const fetch = mockFetch({ version: 3, agents: [] } satisfies MetaResponse);
     vi.stubGlobal("fetch", fetch);
     await client.getMeta();
     expect(fetch.mock.calls[0][1].headers["Authorization"]).toBe(`Bearer ${API_KEY}`);
   });
 
   it("getMeta: GET /meta", async () => {
-    const meta: MetaResponse = { version: 2, agents: [] };
+    const meta: MetaResponse = { version: 3, agents: [] };
     vi.stubGlobal("fetch", mockFetch(meta));
     expect(await client.getMeta()).toEqual(meta);
   });
 
-  it("getSession: GET /session/:id", async () => {
+  it("getSession: GET /sessions/:id", async () => {
     const session: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
     vi.stubGlobal("fetch", mockFetch(session));
     expect(await client.getSession("s1")).toEqual(session);
@@ -81,14 +81,14 @@ describe("Client", () => {
     const fetch = mockFetch({ history: { compacted: [] } });
     vi.stubGlobal("fetch", fetch);
     await client.getSessionHistory("s1", "compacted");
-    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1/history?type=compacted`);
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions/s1/history?type=compacted`);
   });
 
   it("getSessionHistory: appends ?type=full", async () => {
     const fetch = mockFetch({ history: { full: [] } });
     vi.stubGlobal("fetch", fetch);
     await client.getSessionHistory("s1", "full");
-    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/session/s1/history?type=full`);
+    expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions/s1/history?type=full`);
   });
 
   it("listSessions: GET /sessions without cursor", async () => {
@@ -126,46 +126,16 @@ describe("Client", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("deleteSession: DELETE /session/:id returns void on 204", async () => {
+  it("deleteSession: DELETE /sessions/:id returns void on 204", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 204 }));
     await expect(client.deleteSession("s1")).resolves.toBeUndefined();
   });
 
-  it("createSession: throws if last message is not a user message", () => {
-    vi.stubGlobal("fetch", mockFetch({}));
-    expect(() =>
-      client.createSession({
-        agent: { name: "a" },
-        messages: [{ role: "assistant", content: "hi" }],
-      }),
-    ).toThrow("Last message must be a user message");
-  });
-
-  it("createSession: non-streaming returns AgentResponse", async () => {
-    const res: CreateSessionResponse = { sessionId: "s1", stopReason: "end_turn", messages: [] };
+  it("createSession: POST /sessions returns sessionId", async () => {
+    const res: CreateSessionResponse = { sessionId: "s1" };
     vi.stubGlobal("fetch", mockFetch(res, 201));
-    const result = await client.createSession({
-      agent: { name: "a" },
-      messages: [{ role: "user", content: "hi" }],
-    });
+    const result = await client.createSession({ agent: { name: "a" } });
     expect(result).toEqual(res);
-  });
-
-  it("createSession: streaming returns SSE events", async () => {
-    const events: SSEEvent[] = [
-      { event: "session_start", sessionId: "s1" },
-      { event: "turn_start" },
-      { event: "turn_stop", stopReason: "end_turn" },
-    ];
-    vi.stubGlobal("fetch", mockSSEFetch(events));
-    const stream = await client.createSession({
-      agent: { name: "a" },
-      messages: [{ role: "user", content: "hi" }],
-      stream: "message",
-    });
-    const received: SSEEvent[] = [];
-    for await (const e of stream) received.push(e);
-    expect(received).toEqual(events);
   });
 
   it("sendTurn: non-streaming returns AgentResponse", async () => {
@@ -202,8 +172,7 @@ describe("Client", () => {
       }),
     );
     await expect(
-      client.createSession({
-        agent: { name: "a" },
+      client.sendTurn("s1", {
         messages: [{ role: "user", content: "hi" }],
         stream: "delta",
       }),
@@ -231,6 +200,6 @@ describe("Client", () => {
     expect(err).toBeInstanceOf(ClientError);
     expect(err.status).toBe(404);
     expect(err.method).toBe("GET");
-    expect(err.path).toBe("/session/x");
+    expect(err.path).toBe("/sessions/x");
   });
 });

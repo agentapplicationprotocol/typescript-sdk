@@ -11,7 +11,6 @@ import type {
   CreateSessionRequest,
   CreateSessionResponse,
   SessionTurnRequest,
-  SSEEvent,
 } from "@agentapplicationprotocol/core";
 import type { Handler } from "../../server.js";
 import { Session } from "../../session.js";
@@ -69,9 +68,7 @@ const handler: Handler = {
     return { agents: [agent.info] };
   },
 
-  createSession(
-    req: CreateSessionRequest,
-  ): Promise<CreateSessionResponse> | AsyncIterable<SSEEvent> {
+  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse> {
     const sessionId = `sess_${randomUUID()}`;
 
     // Build the model from client-supplied options
@@ -80,10 +77,17 @@ const handler: Handler = {
       apiKey: req.agent.options?.apiKey || undefined,
     });
     const model = new AiModelProvider(openai.chat(req.agent.options?.model ?? "gpt-4o"));
-    const session = new Session(sessionId, agent, model, req.agent, req.tools);
+    const session = new Session(
+      sessionId,
+      agent,
+      model,
+      req.agent,
+      req.tools ?? [],
+      req.messages ?? [],
+    );
 
     sessions.set(sessionId, session);
-    return session.runNewSession(req);
+    return Promise.resolve({ sessionId });
   },
 
   sendTurn(sessionId: string, req: SessionTurnRequest) {

@@ -7,8 +7,6 @@ import {
   sseEventsToMessages,
   AgentResponse,
   StopReason,
-  CreateSessionRequest,
-  CreateSessionResponse,
   SessionTurnRequest,
   StreamMode,
   ContentBlock,
@@ -38,14 +36,15 @@ export class Session {
     agent: Agent,
     model: ModelProvider,
     agentConfig: AgentConfig,
-    clientTools: ToolSpec[] = [],
+    clientTools: ToolSpec[],
+    history: HistoryMessage[],
   ) {
     this.sessionId = sessionId;
     this.agent = agent;
     this.model = model;
     this.agentConfig = agentConfig;
     this.clientTools = clientTools;
-    this.history = [];
+    this.history = history;
   }
 
   /** Resolves tool_permission messages into tool result messages by executing granted tools. */
@@ -265,21 +264,6 @@ export class Session {
       }
       newMessages.push(...next);
     }
-  }
-
-  /** Runs the first turn and wraps the result with `sessionId` for a `createSession` response. */
-  runNewSession(
-    req: CreateSessionRequest,
-  ): Promise<CreateSessionResponse> | AsyncIterable<SSEEvent> {
-    const sessionId = this.sessionId;
-    const result = this.dispatchTurn(req.stream, req.messages);
-    if (result instanceof Promise) {
-      return result.then((res) => ({ ...res, sessionId }));
-    }
-    return (async function* () {
-      yield { event: "session_start" as const, sessionId };
-      yield* result;
-    })();
   }
 
   /** Applies config overrides from the request that persist for the session lifetime: client tools, enabled/trusted agent tools, and agent options. */

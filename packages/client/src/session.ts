@@ -39,51 +39,37 @@ export class Session {
     client: Client,
     agent: AgentInfo,
     agentConfig: AgentConfig,
-    tools: ToolSpec[] = [],
+    tools: ToolSpec[],
+    history: HistoryMessage[],
   ) {
     this.sessionId = sessionId;
     this.client = client;
     this.agent = agent;
     this.agentConfig = agentConfig;
     this.tools = tools;
-    this.history = [];
+    this.history = history;
   }
 
   /**
-   * Creates a new session by sending the first turn to the server.
+   * Creates a new session.
    * @param agentInfo - Agent metadata (e.g. from `client.getMeta()`).
-   * @param cb - Optional callback invoked for each SSE event in streaming mode.
-   * @returns The created session and any pending tool calls from the first turn.
+   * @returns The created session.
    */
   static async create(
     client: Client,
     req: CreateSessionRequest,
     agentInfo: AgentInfo,
-    cb?: (e: SSEEvent) => void,
-  ): Promise<{ session: Session; pending: PendingToolUse }> {
-    let sessionId: string;
-    let newMessages: HistoryMessage[];
-
-    if (req.stream === "delta" || req.stream === "message") {
-      const stream = await client.createSession(
-        req as CreateSessionRequest & { stream: "delta" | "message" },
-      );
-      const events: SSEEvent[] = [];
-      for await (const e of stream) {
-        if (e.event === "session_start") sessionId = e.sessionId;
-        else events.push(e);
-        cb?.(e);
-      }
-      [newMessages] = sseEventsToMessages(events);
-    } else {
-      const res = await client.createSession(req as CreateSessionRequest & { stream?: "none" });
-      sessionId = res.sessionId;
-      newMessages = res.messages;
-    }
-
-    const session = new Session(sessionId!, client, agentInfo, req.agent, req.tools);
-    session.history.push(...req.messages, ...newMessages);
-    return { session, pending: resolvePendingToolUse(session.history, session.tools) };
+  ): Promise<Session> {
+    const { sessionId } = await client.createSession(req);
+    const session = new Session(
+      sessionId,
+      client,
+      agentInfo,
+      req.agent,
+      req.tools ?? [],
+      req.messages ?? [],
+    );
+    return session;
   }
 
   /**
@@ -99,7 +85,7 @@ export class Session {
     agentInfo: AgentInfo,
     history?: "full" | "compacted",
   ): Promise<{ session: Session; pending: PendingToolUse }> {
-    const session = new Session(res.sessionId, client, agentInfo, res.agent, res.tools);
+    const session = new Session(res.sessionId, client, agentInfo, res.agent, res.tools ?? [], []);
     if (history) {
       const histRes = await client.getSessionHistory(res.sessionId, history);
       const h = history === "compacted" ? histRes.history.compacted : histRes.history.full;

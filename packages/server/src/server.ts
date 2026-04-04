@@ -21,10 +21,7 @@ export interface Handler {
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse>;
   getSessionHistory(sessionId: string, type: "compacted" | "full"): Promise<HistoryMessage[]>;
-  /** The last message in `req.messages` is guaranteed to be a user message. */
-  createSession(
-    req: CreateSessionRequest,
-  ): Promise<CreateSessionResponse> | AsyncIterable<SSEEvent>;
+  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse>;
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest,
@@ -80,20 +77,15 @@ function redactSecretOptions(session: SessionResponse, agents: AgentInfo[]): Ses
 export function aap(handler: Handler): Hono {
   const router = new Hono();
 
-  router.get("/meta", (c) => c.json({ version: 2, ...handler.getMeta() } satisfies MetaResponse));
+  router.get("/meta", (c) => c.json({ version: 3, ...handler.getMeta() } satisfies MetaResponse));
 
-  router.put("/session", async (c) => {
+  router.post("/sessions", async (c) => {
     const req = await c.req.json<CreateSessionRequest>();
-    if (req.messages.at(-1)?.role !== "user")
-      return c.json({ error: "Last message must be a user message" }, 400);
     const result = await handler.createSession(req);
-    if (req.stream === "delta" || req.stream === "message") {
-      return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
-    }
     return c.json(result as CreateSessionResponse, 201);
   });
 
-  router.post("/session/:id", async (c) => {
+  router.post("/sessions/:id/turns", async (c) => {
     const req = await c.req.json<SessionTurnRequest>();
     const result = await handler.sendTurn(c.req.param("id"), req);
     if (req.stream === "delta" || req.stream === "message") {
@@ -102,13 +94,13 @@ export function aap(handler: Handler): Hono {
     return c.json(result as AgentResponse);
   });
 
-  router.get("/session/:id", async (c) => {
+  router.get("/sessions/:id", async (c) => {
     const session = await handler.getSession(c.req.param("id"));
     const { agents } = handler.getMeta();
     return c.json(redactSecretOptions(session, agents));
   });
 
-  router.get("/session/:id/history", async (c) => {
+  router.get("/sessions/:id/history", async (c) => {
     const typeParam = c.req.query("type");
     if (typeParam !== "compacted" && typeParam !== "full")
       return c.json({ error: 'type must be "compacted" or "full"' }, 400);
@@ -126,7 +118,7 @@ export function aap(handler: Handler): Hono {
     });
   });
 
-  router.delete("/session/:id", async (c) => {
+  router.delete("/sessions/:id", async (c) => {
     await handler.deleteSession(c.req.param("id"));
     return new Response(null, { status: 204 });
   });

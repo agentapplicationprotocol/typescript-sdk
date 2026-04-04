@@ -78,8 +78,8 @@ export class Client {
   /** GET /meta */
   async getMeta(): Promise<MetaResponse> {
     const meta = await this.request<MetaResponse>("GET", "/meta");
-    if (meta.version !== 2) {
-      throw new Error(`Protocol version mismatch: expected 2, got ${meta.version}`);
+    if (meta.version !== 3) {
+      throw new Error(`Protocol version mismatch: expected 3, got ${meta.version}`);
     }
     return meta;
   }
@@ -105,45 +105,33 @@ export class Client {
     return sessions;
   }
 
-  /** GET /session/:id */
+  /** GET /sessions/:id */
   getSession(sessionId: string): Promise<SessionResponse> {
-    return this.request("GET", `/session/${sessionId}`);
+    return this.request("GET", `/sessions/${sessionId}`);
   }
 
-  /** GET /session/:id/history */
+  /** GET /sessions/:id/history */
   getSessionHistory(
     sessionId: string,
     type: "compacted" | "full",
   ): Promise<SessionHistoryResponse> {
     return this.request(
       "GET",
-      `/session/${sessionId}/history?${new URLSearchParams({ type }).toString()}`,
+      `/sessions/${sessionId}/history?${new URLSearchParams({ type }).toString()}`,
     );
   }
 
-  /** PUT /session — non-streaming */
-  createSession(req: CreateSessionRequest & { stream?: "none" }): Promise<CreateSessionResponse>;
-  /** PUT /session — SSE streaming */
-  createSession(
-    req: CreateSessionRequest & { stream: "delta" | "message" },
-  ): Promise<AsyncIterable<SSEEvent>>;
-  createSession(
-    req: CreateSessionRequest,
-  ): Promise<CreateSessionResponse | AsyncIterable<SSEEvent>> {
-    if (req.messages.at(-1)?.role !== "user")
-      throw new Error("Last message must be a user message");
-    if (req.stream === "delta" || req.stream === "message") {
-      return this.streamRequest("PUT", "/session", req);
-    }
-    return this.request("PUT", "/session", req);
+  /** POST /sessions */
+  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse> {
+    return this.request("POST", "/sessions", req);
   }
 
-  /** POST /session/:id — non-streaming */
+  /** POST /sessions/:id/turns — non-streaming */
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest & { stream?: "none" },
   ): Promise<AgentResponse>;
-  /** POST /session/:id — SSE streaming */
+  /** POST /sessions/:id/turns — SSE streaming */
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest & { stream: "delta" | "message" },
@@ -153,14 +141,14 @@ export class Client {
     req: SessionTurnRequest,
   ): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
     if (req.stream === "delta" || req.stream === "message") {
-      return this.streamRequest("POST", `/session/${sessionId}`, req);
+      return this.streamRequest("POST", `/sessions/${sessionId}/turns`, req);
     }
-    return this.request("POST", `/session/${sessionId}`, req);
+    return this.request("POST", `/sessions/${sessionId}/turns`, req);
   }
 
-  /** DELETE /session/:id */
+  /** DELETE /sessions/:id */
   deleteSession(sessionId: string): Promise<void> {
-    return this.request("DELETE", `/session/${sessionId}`);
+    return this.request("DELETE", `/sessions/${sessionId}`);
   }
 }
 

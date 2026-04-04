@@ -6,7 +6,7 @@ describe("resolvePendingToolUse", () => {
   const clientTool: ToolSpec = {
     name: "client_tool",
     description: "d",
-    inputSchema: { type: "object" },
+    parameters: { type: "object" },
   };
 
   it("classifies client and server tools", () => {

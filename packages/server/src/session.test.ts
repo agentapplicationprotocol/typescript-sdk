@@ -36,7 +36,7 @@ function makeSession(
   model = makeModel(),
   agent = makeAgent(),
 ) {
-  return new Session("sess-1", agent, model, agentConfig);
+  return new Session("sess-1", agent, model, agentConfig, [], []);
 }
 
 const userMsg: HistoryMessage = { role: "user", content: "hello" };
@@ -59,7 +59,7 @@ describe("Session", () => {
 
   it("toSessionResponse includes tools when clientTools is set", () => {
     const s = makeSession();
-    s.clientTools = [{ name: "t", description: "", inputSchema: {} }];
+    s.clientTools = [{ name: "t", description: "", parameters: {} }];
     expect(s.toSessionResponse().tools).toHaveLength(1);
   });
 
@@ -100,7 +100,7 @@ describe("Session", () => {
             messages: [{ role: "assistant", content: "done" }],
           }),
       });
-      const s = new Session("s", agent, model, agentConfig);
+      const s = new Session("s", agent, model, agentConfig, [], []);
       const res = await (s.runTurn({ messages: [userMsg] }) as Promise<AgentResponse>);
       expect(res.stopReason).toBe("end_turn");
       expect(model.call).toHaveBeenCalledTimes(2);
@@ -123,7 +123,7 @@ describe("Session", () => {
           ],
         }),
       });
-      const s = new Session("s", agent, model, agentConfig);
+      const s = new Session("s", agent, model, agentConfig, [], []);
       const res = (await s.runTurn({ messages: [userMsg] })) as AgentResponse;
       expect(res.stopReason).toBe("tool_use");
       expect(model.call).toHaveBeenCalledTimes(1);
@@ -163,7 +163,7 @@ describe("Session", () => {
             yield { event: "turn_stop" as const, stopReason: "end_turn" as const };
           }),
       });
-      const s = new Session("s", agent, model, agentConfig);
+      const s = new Session("s", agent, model, agentConfig, [], []);
       const events = [];
       for await (const e of s.runTurn({
         messages: [userMsg],
@@ -230,7 +230,7 @@ describe("Session", () => {
             messages: [{ role: "assistant", content: "done" }],
           }),
       });
-      const s = new Session("s", agent, model, agentConfig);
+      const s = new Session("s", agent, model, agentConfig, [], []);
       const events = [];
       for await (const e of s.runTurn({
         messages: [userMsg],
@@ -249,7 +249,7 @@ describe("Session", () => {
       const agentConfig: AgentConfig = { name: "test-agent" };
       // Seed history with an assistant message containing a tool_use
       const model = makeModel();
-      const s = new Session("s", agent, model, agentConfig);
+      const s = new Session("s", agent, model, agentConfig, [], []);
       s.history = [
         { role: "user", content: "hi" },
         {
@@ -270,7 +270,7 @@ describe("Session", () => {
     it("resolves denied tool_permission with denial message", async () => {
       const agent = makeAgent();
       const model = makeModel();
-      const s = new Session("s", agent, model, { name: "test-agent" });
+      const s = new Session("s", agent, model, { name: "test-agent" }, [], []);
       s.history = [
         {
           role: "assistant",
@@ -289,7 +289,7 @@ describe("Session", () => {
   describe("applySessionOverrides via runTurn", () => {
     it("overrides clientTools when req.tools is provided", async () => {
       const s = makeSession();
-      const newTool = { name: "x", description: "", inputSchema: {} };
+      const newTool = { name: "x", description: "", parameters: {} };
       await s.runTurn({ messages: [userMsg], tools: [newTool] });
       expect(s.clientTools).toEqual([newTool]);
     });
@@ -304,26 +304,6 @@ describe("Session", () => {
       const s = makeSession({ name: "test-agent", options: { model: "gpt-4" } });
       await s.runTurn({ messages: [userMsg], agent: { options: { model: "gpt-5" } } });
       expect(s.agentConfig.options).toEqual({ model: "gpt-5" });
-    });
-  });
-
-  describe("runNewSession", () => {
-    it("returns CreateSessionResponse with sessionId (none mode)", async () => {
-      const s = makeSession();
-      const res = await s.runNewSession({ agent: { name: "test-agent" }, messages: [userMsg] });
-      expect((res as any).sessionId).toBe("sess-1");
-    });
-
-    it("yields session_start event first (delta mode)", async () => {
-      const s = makeSession();
-      const result = s.runNewSession({
-        agent: { name: "test-agent" },
-        messages: [userMsg],
-        stream: "delta",
-      });
-      const events = [];
-      for await (const e of result as AsyncIterable<any>) events.push(e);
-      expect(events[0]).toEqual({ event: "session_start", sessionId: "sess-1" });
     });
   });
 });

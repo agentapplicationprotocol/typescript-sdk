@@ -32,7 +32,7 @@ const CLIENT_TOOLS: Record<string, { spec: ToolSpec; exec: (input: unknown) => u
     spec: {
       name: "calculate",
       description: "Evaluate a mathematical expression",
-      inputSchema: {
+      parameters: {
         type: "object",
         properties: {
           expression: {
@@ -313,7 +313,7 @@ async function main() {
     break;
   }
 
-  const { session, pending } = await Session.create(
+  const session = await Session.create(
     client,
     {
       agent: {
@@ -322,10 +322,14 @@ async function main() {
         options: Object.keys(agentOptions).length ? agentOptions : undefined,
       },
       tools: getClientTools(),
-      stream: streamMode === "none" ? undefined : streamMode,
-      messages: [{ role: "user", content: firstInput }],
     },
     agentInfo,
+  );
+  const pending = await session.send(
+    {
+      messages: [{ role: "user", content: firstInput }],
+      stream: streamMode === "none" ? undefined : streamMode,
+    },
     sseCallback,
   );
   printLastAssistant(session);
