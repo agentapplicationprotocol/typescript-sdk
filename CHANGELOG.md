@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **server**: Prevent yielding premature `turn_stop` event during streaming — `runTurnDelta` now suppresses the `turn_stop` from `stream()` and emits its own final one
+
 ## [0.7.0] - 2026-04-04
 
 ### Changed
