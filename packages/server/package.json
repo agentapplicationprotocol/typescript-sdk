@@ -21,6 +21,9 @@
     "directory": "packages/server"
   },
   "files": [
+    "src",
+    "!src/examples",
+    "!src/**/*.test.*",
     "dist/src",
     "!dist/src/examples",
     "!dist/src/**/*.test.*"

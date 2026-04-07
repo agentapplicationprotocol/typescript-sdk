@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- TypeScript source files (`src/`) are now included in published packages alongside `dist/`, enabling IDE jump-to-definition to land on real `.ts` source via declaration maps
+
 ### Fixed
 
 - **server**: Prevent yielding premature `turn_stop` event during streaming — `runTurnDelta` now suppresses the `turn_stop` from `stream()` and emits its own final one
