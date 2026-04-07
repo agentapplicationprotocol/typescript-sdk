@@ -140,8 +140,12 @@ export class Session {
 
     while (true) {
       // stream the LLM response chunk by chunk, forwarding events to the caller
+      // suppress turn_stop from stream() — runTurnDelta emits its own final turn_stop
       for await (const e of this.stream(next)) {
-        if (e.event === "turn_stop") stopReason = e.stopReason;
+        if (e.event === "turn_stop") {
+          stopReason = e.stopReason;
+          continue;
+        }
         yield e;
       }
 
