@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-04-07
+
 ### Added
 
 - TypeScript source files (`src/`) are now included in published packages alongside `dist/`, enabling IDE jump-to-definition to land on real `.ts` source via declaration maps
@@ -169,7 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of the TypeScript SDK for the Agent Application Protocol (AAP)
 
-[Unreleased]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/agentapplicationprotocol/typescript-sdk/compare/v0.5.0...v0.6.0
