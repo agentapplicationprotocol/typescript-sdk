@@ -60,6 +60,12 @@ describe("Agent", () => {
     expect(JSON.parse(result)).toBe(5);
   });
 
+  it("tool() excludes $schema from parameters", () => {
+    const agent = new Agent("a");
+    agent.tool("t", { inputSchema: z.object({ x: z.string() }) }, async () => null);
+    expect(agent.info.tools![0].parameters).not.toHaveProperty("$schema");
+  });
+
   it("tool() validates output with outputSchema", async () => {
     const agent = new Agent("a");
     agent.tool(
