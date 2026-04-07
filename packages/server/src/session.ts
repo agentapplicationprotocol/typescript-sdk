@@ -101,9 +101,14 @@ export class Session {
   protected async *stream(messages: HistoryMessage[]): AsyncIterable<DeltaSSEEvent> {
     const history = [...this.history, ...messages];
     const events: SSEEvent[] = [];
-    for await (const e of this.model.stream(history, this.enabledToolSpecs())) {
-      events.push(e);
-      yield e;
+    try {
+      for await (const e of this.model.stream(history, this.enabledToolSpecs())) {
+        events.push(e);
+        yield e;
+      }
+    } catch (err) {
+      yield { event: "turn_stop", stopReason: "error" };
+      return;
     }
     const [resMessages] = sseEventsToMessages(events);
     this.history.push(...messages, ...resMessages);

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **server**: Strip `$schema` field from `z.toJSONSchema()` output in tool `parameters`
 - **server**: Prevent yielding premature `turn_stop` event during streaming — `runTurnDelta` now suppresses the `turn_stop` from `stream()` and emits its own final one
+- **server**: Yield `turn_stop` with `stopReason: "error"` when `model.stream()` throws
 
 ## [0.7.0] - 2026-04-04
 

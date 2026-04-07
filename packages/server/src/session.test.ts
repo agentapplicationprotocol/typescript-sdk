@@ -140,6 +140,24 @@ describe("Session", () => {
       expect(events.at(-1)!.event).toBe("turn_stop");
     });
 
+    it("yields turn_stop with error stopReason when model.stream throws", async () => {
+      const model = makeModel({
+        stream: vi.fn().mockImplementationOnce(async function* () {
+          throw new Error("model failure");
+        }),
+      });
+      const s = makeSession({ name: "test-agent" }, model);
+      const events = [];
+      for await (const e of s.runTurn({
+        messages: [userMsg],
+        stream: "delta",
+      }) as AsyncIterable<DeltaSSEEvent>)
+        events.push(e);
+      const last = events.at(-1)!;
+      expect(last.event).toBe("turn_stop");
+      expect((last as any).stopReason).toBe("error");
+    });
+
     it("executes trusted tools inline and loops in delta mode", async () => {
       const agent = makeAgent();
       const agentConfig: AgentConfig = {
