@@ -1,6 +1,6 @@
 {
   "name": "@agentapplicationprotocol/core",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Core types and utilities for the Agent Application Protocol",
   "keywords": [
     "aap",
