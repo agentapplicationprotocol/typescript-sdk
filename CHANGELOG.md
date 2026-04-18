@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **server**: Export AI SDK conversion helpers — `toAiMessages`, `fromAiMessages`, `fromAiFinishReason`, `fromAiStreamPart`
+- **server**: `fromAiMessages` now accepts `ModelMessage[]` (all roles) for symmetry with `toAiMessages`
+
 ## [0.7.1] - 2026-04-07
 
 ### Added

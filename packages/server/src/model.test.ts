@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { ModelProvider, AiModelProvider } from "./model";
+import { ModelProvider, AiModelProvider, fromAiMessages } from "./model";
 import type { HistoryMessage, DeltaSSEEvent } from "@agentapplicationprotocol/core";
-import type { LanguageModel } from "ai";
+import type { LanguageModel, ModelMessage } from "ai";
 
 // --- ModelProvider base class ---
 
@@ -169,5 +169,100 @@ describe("AiModelProvider", () => {
       const res = await new AiModelProvider(lm).call([{ role: "user", content: "hi" }], []);
       expect(res.stopReason).toBe(expected);
     }
+  });
+});
+
+// --- fromAiMessages ---
+
+describe("fromAiMessages", () => {
+  it("converts system message", () => {
+    const input: ModelMessage[] = [{ role: "system", content: "be helpful" }];
+    expect(fromAiMessages(input)).toEqual([{ role: "system", content: "be helpful" }]);
+  });
+
+  it("converts user text message", () => {
+    const input: ModelMessage[] = [{ role: "user", content: "hello" }];
+    expect(fromAiMessages(input)).toEqual([{ role: "user", content: "hello" }]);
+  });
+
+  it("converts user message with text and image (URL) parts", () => {
+    const input: ModelMessage[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "look" },
+          { type: "image", image: new URL("https://example.com/img.png") },
+        ],
+      },
+    ];
+    const result = fromAiMessages(input);
+    expect(result[0]).toMatchObject({
+      role: "user",
+      content: [
+        { type: "text", text: "look" },
+        { type: "image", url: "https://example.com/img.png" },
+      ],
+    });
+  });
+
+  it("converts user message with base64 image part", () => {
+    const input: ModelMessage[] = [
+      { role: "user", content: [{ type: "image", image: "abc123", mediaType: "image/png" }] },
+    ];
+    const result = fromAiMessages(input);
+    expect(result[0]).toMatchObject({
+      role: "user",
+      content: [{ type: "image", url: "data:image/png;base64,abc123" }],
+    });
+  });
+
+  it("converts assistant text message", () => {
+    const input: ModelMessage[] = [{ role: "assistant", content: "hi" }];
+    expect(fromAiMessages(input)).toEqual([{ role: "assistant", content: "hi" }]);
+  });
+
+  it("converts assistant message with text, reasoning, and tool-call parts", () => {
+    const input: ModelMessage[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "ok" },
+          { type: "reasoning", text: "hmm" },
+          { type: "tool-call", toolCallId: "c1", toolName: "fn", input: { x: 1 } },
+        ],
+      },
+    ];
+    expect(fromAiMessages(input)).toEqual([
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "ok" },
+          { type: "thinking", thinking: "hmm" },
+          { type: "tool_use", toolCallId: "c1", name: "fn", input: { x: 1 } },
+        ],
+      },
+    ]);
+  });
+
+  it("converts tool message", () => {
+    const input: ModelMessage[] = [
+      {
+        role: "tool",
+        content: [
+          {
+            type: "tool-result",
+            toolCallId: "c1",
+            toolName: "fn",
+            output: { type: "text", value: "result" },
+          },
+        ],
+      },
+    ];
+    expect(fromAiMessages(input)).toEqual([{ role: "tool", toolCallId: "c1", content: "result" }]);
+  });
+
+  it("skips unknown roles", () => {
+    const input = [{ role: "unknown", content: "x" }] as unknown as ModelMessage[];
+    expect(fromAiMessages(input)).toEqual([]);
   });
 });

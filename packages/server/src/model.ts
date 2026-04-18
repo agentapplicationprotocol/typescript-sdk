@@ -44,7 +44,7 @@ export abstract class ModelProvider {
  * Image blocks in user messages are converted to AI SDK image parts
  * (URL objects for `https://` links, base64 strings for `data:` URIs).
  */
-function toAiMessages(messages: HistoryMessage[]): ModelMessage[] {
+export function toAiMessages(messages: HistoryMessage[]): ModelMessage[] {
   // Build a lookup map from toolCallId to tool name from all assistant messages
   const toolNameById = new Map<string, string>();
   for (const m of messages) {
@@ -64,8 +64,8 @@ function toAiMessages(messages: HistoryMessage[]): ModelMessage[] {
         if (b.type === "image") {
           if (b.url.startsWith("data:")) {
             const [header, data] = b.url.slice(5).split(",");
-            const mimeType = header.replace(";base64", "");
-            return { type: "image", image: data, mimeType };
+            const mediaType = header.replace(";base64", "");
+            return { type: "image", image: data, mediaType };
           }
           return { type: "image", image: new URL(b.url) };
         }
@@ -110,7 +110,7 @@ function toAiMessages(messages: HistoryMessage[]): ModelMessage[] {
 }
 
 /** Maps an AI SDK `finishReason` string to an AAP `StopReason`. */
-function toStopReason(reason: FinishReason): StopReason {
+export function fromAiFinishReason(reason: FinishReason): StopReason {
   if (reason === "tool-calls") return "tool_use";
   if (reason === "length") return "max_tokens";
   if (reason === "content-filter") return "refusal";
@@ -118,8 +118,8 @@ function toStopReason(reason: FinishReason): StopReason {
   return "end_turn";
 }
 
-/** Maps an AI SDK `TextStreamPart` to an AAP `DeltaSSEEvent`, or `undefined` for irrelevant part types. */
-function toAAPEvent(part: TextStreamPart<any>): DeltaSSEEvent | undefined {
+/** Converts an AI SDK `TextStreamPart` to an AAP `DeltaSSEEvent`, or `undefined` for irrelevant part types. */
+export function fromAiStreamPart(part: TextStreamPart<ToolSet>): DeltaSSEEvent | undefined {
   if (part.type === "text-delta") {
     return { event: "text_delta" as const, delta: part.text };
   } else if (part.type === "reasoning-delta") {
@@ -134,14 +134,30 @@ function toAAPEvent(part: TextStreamPart<any>): DeltaSSEEvent | undefined {
   } else if (part.type === "finish") {
     return {
       event: "turn_stop",
-      stopReason: toStopReason(part.finishReason),
+      stopReason: fromAiFinishReason(part.finishReason),
     };
   }
 }
 
-/** Converts AI SDK `ResponseMessage[]` to AAP `HistoryMessage[]`. */
-function fromAiMessages(messages: (AssistantModelMessage | ToolModelMessage)[]): HistoryMessage[] {
+/** Converts AI SDK `ModelMessage[]` to AAP `HistoryMessage[]`. */
+export function fromAiMessages(messages: ModelMessage[]): HistoryMessage[] {
   return messages.flatMap((m): HistoryMessage[] => {
+    if (m.role === "system") return [{ role: "system", content: m.content }];
+    if (m.role === "user") {
+      if (typeof m.content === "string") return [{ role: "user", content: m.content }];
+      const content = m.content.flatMap((b): ContentBlock[] => {
+        if (b.type === "text") return [{ type: "text", text: b.text }];
+        if (b.type === "image") {
+          const url =
+            b.image instanceof URL
+              ? b.image.href
+              : `data:${b.mediaType ?? "image/png"};base64,${b.image}`;
+          return [{ type: "image", url }];
+        }
+        return [];
+      });
+      return [{ role: "user", content }];
+    }
     if (m.role === "assistant") {
       if (typeof m.content === "string") return [{ role: "assistant", content: m.content }];
       const content = m.content.flatMap((b): ContentBlock[] => {
@@ -167,7 +183,7 @@ function fromAiMessages(messages: (AssistantModelMessage | ToolModelMessage)[]):
         return [{ role: "tool", toolCallId: b.toolCallId, content }];
       });
     }
-    return [];
+    return []; // skip unknown roles
   });
 }
 
@@ -196,7 +212,7 @@ export class AiModelProvider extends ModelProvider {
     });
 
     for await (const part of result.fullStream) {
-      const e = toAAPEvent(part);
+      const e = fromAiStreamPart(part);
       if (e !== undefined) {
         yield e;
       }
@@ -211,7 +227,7 @@ export class AiModelProvider extends ModelProvider {
     });
     return {
       messages: fromAiMessages(res.response.messages),
-      stopReason: toStopReason(res.finishReason),
+      stopReason: fromAiFinishReason(res.finishReason),
     };
   }
 }
