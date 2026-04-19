@@ -63,10 +63,6 @@ const agentOptions: Record<string, string> = {};
 
 let rl: readline.Interface;
 
-function isClientTool(name: string) {
-  return name in CLIENT_TOOLS;
-}
-
 function printHelp(agent: AgentInfo) {
   console.log("Commands:");
   console.log("  /stream delta|message|none");

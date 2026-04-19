@@ -8,7 +8,6 @@ import {
   ContentBlock,
 } from "@agentapplicationprotocol/core";
 import {
-  AssistantModelMessage,
   FinishReason,
   generateText,
   jsonSchema,
@@ -17,7 +16,6 @@ import {
   streamText,
   TextStreamPart,
   tool,
-  ToolModelMessage,
   ToolSet,
 } from "ai";
 
