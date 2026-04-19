@@ -187,7 +187,7 @@ export function fromAiMessages(messages: ModelMessage[]): HistoryMessage[] {
   });
 }
 
-function toToolSet(tools: ToolSpec[]): ToolSet {
+export function toAiToolSet(tools: ToolSpec[]): ToolSet {
   const res: ToolSet = {};
   for (const t of tools) {
     res[t.name] = tool({
@@ -207,7 +207,7 @@ export class AiModelProvider extends ModelProvider {
   async *stream(history: HistoryMessage[], tools: ToolSpec[]) {
     const result = streamText({
       model: this.model,
-      tools: toToolSet(tools),
+      tools: toAiToolSet(tools),
       messages: toAiMessages(history),
     });
 
@@ -222,7 +222,7 @@ export class AiModelProvider extends ModelProvider {
   async call(history: HistoryMessage[], tools: ToolSpec[]): Promise<AgentResponse> {
     const res = await generateText({
       model: this.model,
-      tools: toToolSet(tools),
+      tools: toAiToolSet(tools),
       messages: toAiMessages(history),
     });
     return {

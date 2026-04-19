@@ -7,6 +7,7 @@ export {
   fromAiMessages,
   fromAiFinishReason,
   fromAiStreamPart,
+  toAiToolSet,
 } from "./model";
 export { Session } from "./session";
 export type { TurnMessages } from "./session";
