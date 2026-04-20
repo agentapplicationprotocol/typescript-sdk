@@ -94,18 +94,18 @@ const handler: Handler = {
 
   async getSession(sessionId: string) {
     const session = sessions.get(sessionId);
-    if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session.toSessionResponse();
+    return session?.toSessionResponse();
   },
 
   async getSessionHistory(sessionId: string, type: "compacted" | "full") {
     const session = sessions.get(sessionId);
-    if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return type === "compacted" ? session.history : session.fullHistory;
+    return type === "compacted" ? session?.history : session?.fullHistory;
   },
 
   async listSessions() {
-    return { sessions: [...sessions.values()].map((s) => s.toSessionResponse()) };
+    return {
+      sessions: [...sessions.values()].map((s) => s.toSessionResponse()),
+    };
   },
 
   async deleteSession(sessionId: string) {

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **server**: `Handler.getSession` now returns `SessionResponse | undefined` instead of throwing when session is not found
+- **server**: `Handler.getSessionHistory` signature changed to `(sessionId: string, type) => Promise<HistoryMessage[] | undefined>` — returns `undefined` when session is not found; the router responds with 404 accordingly
+
 ## [0.7.3] - 2026-04-18
 
 ### Added

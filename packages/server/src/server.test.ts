@@ -263,4 +263,17 @@ describe("aap middleware", () => {
     const res = await app.fetch(req("GET", "/sessions/s1/history"));
     expect(res.status).toBe(400);
   });
+
+  it("GET /sessions/:id returns 404 when session not found", async () => {
+    const app = makeApp(makeHandler({ getSession: vi.fn().mockResolvedValue(undefined) }));
+    const res = await app.fetch(req("GET", "/sessions/s1"));
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /sessions/:id/history returns 404 when session not found", async () => {
+    const handler = makeHandler({ getSessionHistory: vi.fn().mockResolvedValue(undefined) });
+    const app = makeApp(handler);
+    const res = await app.fetch(req("GET", "/sessions/s1/history?type=full"));
+    expect(res.status).toBe(404);
+  });
 });

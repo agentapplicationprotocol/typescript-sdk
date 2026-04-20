@@ -19,8 +19,11 @@ import {
 export interface Handler {
   getMeta(): Omit<MetaResponse, "version">;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
-  getSession(sessionId: string): Promise<SessionResponse>;
-  getSessionHistory(sessionId: string, type: "compacted" | "full"): Promise<HistoryMessage[]>;
+  getSession(sessionId: string): Promise<SessionResponse | undefined>;
+  getSessionHistory(
+    sessionId: string,
+    type: "compacted" | "full",
+  ): Promise<HistoryMessage[] | undefined>;
   createSession(req: CreateSessionRequest): Promise<CreateSessionResponse>;
   sendTurn(
     sessionId: string,
@@ -96,6 +99,7 @@ export function aap(handler: Handler): Hono {
 
   router.get("/sessions/:id", async (c) => {
     const session = await handler.getSession(c.req.param("id"));
+    if (!session) return c.json({ error: "Session not found" }, 404);
     const { agents } = handler.getMeta();
     return c.json(redactSecretOptions(session, agents));
   });
@@ -105,6 +109,7 @@ export function aap(handler: Handler): Hono {
     if (typeParam !== "compacted" && typeParam !== "full")
       return c.json({ error: 'type must be "compacted" or "full"' }, 400);
     const messages = await handler.getSessionHistory(c.req.param("id"), typeParam);
+    if (!messages) return c.json({ error: "Session not found" }, 404);
     return c.json({ history: { [typeParam]: messages } });
   });
 
