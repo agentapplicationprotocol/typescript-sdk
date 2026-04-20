@@ -32,7 +32,9 @@ function makeHandler(overrides: Partial<Handler> = {}): Handler {
     getSession: vi.fn().mockResolvedValue(session),
     getSessionHistory: vi.fn().mockResolvedValue([] satisfies HistoryMessage[]),
     postSessions: vi.fn().mockResolvedValue(postSessionsResponse),
-    postSessionTurn: vi.fn().mockResolvedValue(agentResponse),
+    postSessionTurnStreamNone: vi.fn().mockResolvedValue(agentResponse),
+    postSessionTurnStreamDelta: vi.fn().mockReturnValue(sseEvents()),
+    postSessionTurnStreamMessage: vi.fn().mockReturnValue(sseEvents()),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -158,7 +160,7 @@ describe("aap middleware", () => {
   });
 
   it("POST /sessions/:id/turns with stream returns SSE", async () => {
-    const app = makeApp(makeHandler({ postSessionTurn: vi.fn().mockResolvedValue(sseEvents()) }));
+    const app = makeApp(makeHandler());
     const res = await app.fetch(
       req("POST", "/sessions/s1/turns", {
         messages: [{ role: "user", content: "hi" }],

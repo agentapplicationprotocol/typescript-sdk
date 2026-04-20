@@ -91,10 +91,20 @@ const handler: Handler = {
     return Promise.resolve({ sessionId });
   },
 
-  postSessionTurn(sessionId: string, req: PostSessionTurnRequest) {
+  postSessionTurnStreamNone(sessionId: string, req: PostSessionTurnRequest) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session.runTurn(req);
+    return session.runTurnNone(req);
+  },
+  postSessionTurnStreamDelta(sessionId: string, req: PostSessionTurnRequest) {
+    const session = sessions.get(sessionId);
+    if (!session) throw new Error(`Session not found: ${sessionId}`);
+    return session.runTurnDelta(req);
+  },
+  postSessionTurnStreamMessage(sessionId: string, req: PostSessionTurnRequest) {
+    const session = sessions.get(sessionId);
+    if (!session) throw new Error(`Session not found: ${sessionId}`);
+    return session.runTurnMessage(req);
   },
 
   async getSession(sessionId: string) {

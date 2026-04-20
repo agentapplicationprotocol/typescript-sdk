@@ -14,6 +14,8 @@ import {
   SessionInfo,
   PostSessionTurnRequest,
   SSEEvent,
+  DeltaSSEEvent,
+  MessageSSEEvent,
 } from "@agentapplicationprotocol/core";
 
 // --- Handler interface ---
@@ -29,11 +31,21 @@ export interface Handler {
   getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
   /** Creates a new session and returns its ID for `POST /sessions`. */
   postSessions(req: PostSessionsRequest): Promise<PostSessionsResponse>;
-  /** Runs an agent turn and returns a response or SSE stream for `POST /sessions/:id/turns`. */
-  postSessionTurn(
+  /** Runs a non-streaming agent turn for `POST /sessions/:id/turns` with `stream: "none"`. */
+  postSessionTurnStreamNone(
     sessionId: string,
     req: PostSessionTurnRequest,
-  ): Promise<PostSessionTurnResponse> | AsyncIterable<SSEEvent>;
+  ): Promise<PostSessionTurnResponse>;
+  /** Runs a delta-streaming agent turn for `POST /sessions/:id/turns` with `stream: "delta"`. */
+  postSessionTurnStreamDelta(
+    sessionId: string,
+    req: PostSessionTurnRequest,
+  ): AsyncIterable<DeltaSSEEvent>;
+  /** Runs a message-streaming agent turn for `POST /sessions/:id/turns` with `stream: "message"`. */
+  postSessionTurnStreamMessage(
+    sessionId: string,
+    req: PostSessionTurnRequest,
+  ): AsyncIterable<MessageSSEEvent>;
   /** Deletes a session for `DELETE /sessions/:id`. */
   deleteSession(sessionId: string): Promise<void>;
 }
@@ -98,11 +110,16 @@ export function aap(handler: Handler): Hono {
 
   router.post("/sessions/:id/turns", async (c) => {
     const req = await c.req.json<PostSessionTurnRequest>();
-    const result = await handler.postSessionTurn(c.req.param("id"), req);
-    if (req.stream === "delta" || req.stream === "message") {
-      return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
-    }
-    return c.json(result as PostSessionTurnResponse);
+    const id = c.req.param("id");
+    if (req.stream === "delta")
+      return streamSSE(c, (stream) =>
+        writeSSEEvents(stream, handler.postSessionTurnStreamDelta(id, req)),
+      );
+    if (req.stream === "message")
+      return streamSSE(c, (stream) =>
+        writeSSEEvents(stream, handler.postSessionTurnStreamMessage(id, req)),
+      );
+    return c.json(await handler.postSessionTurnStreamNone(id, req));
   });
 
   router.get("/sessions/:id", async (c) => {

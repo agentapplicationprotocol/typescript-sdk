@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { Session } from "./session";
+import type { PostSessionTurnRequest } from "@agentapplicationprotocol/core";
 import { Agent } from "./agent";
 import { ModelProvider } from "./model";
 import type {
@@ -10,6 +11,12 @@ import type {
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 import z from "zod";
+
+function runTurn(s: Session, req: PostSessionTurnRequest) {
+  if (req.stream === "delta") return s.runTurnDelta(req);
+  if (req.stream === "message") return s.runTurnMessage(req);
+  return s.runTurnNone(req);
+}
 
 function makeModel(overrides: Partial<ModelProvider> = {}): ModelProvider {
   return {
@@ -66,7 +73,7 @@ describe("Session", () => {
   describe("runTurn (none mode)", () => {
     it("calls model and accumulates history", async () => {
       const s = makeSession();
-      const res = (await s.runTurn({ messages: [userMsg] })) as PostSessionTurnResponse;
+      const res = (await runTurn(s, { messages: [userMsg] })) as PostSessionTurnResponse;
       expect(res).toEqual({
         stopReason: "end_turn",
         messages: [{ role: "assistant", content: "hi" }],
@@ -101,7 +108,7 @@ describe("Session", () => {
           }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const res = await (s.runTurn({ messages: [userMsg] }) as Promise<PostSessionTurnResponse>);
+      const res = await (runTurn(s, { messages: [userMsg] }) as Promise<PostSessionTurnResponse>);
       expect(res.stopReason).toBe("end_turn");
       expect(model.call).toHaveBeenCalledTimes(2);
     });
@@ -124,7 +131,7 @@ describe("Session", () => {
         }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const res = (await s.runTurn({ messages: [userMsg] })) as PostSessionTurnResponse;
+      const res = (await runTurn(s, { messages: [userMsg] })) as PostSessionTurnResponse;
       expect(res.stopReason).toBe("tool_use");
       expect(model.call).toHaveBeenCalledTimes(1);
     });
@@ -133,7 +140,7 @@ describe("Session", () => {
   describe("runTurn (delta mode)", () => {
     it("yields turn_start and turn_stop events", async () => {
       const s = makeSession();
-      const result = s.runTurn({ messages: [userMsg], stream: "delta" });
+      const result = runTurn(s, { messages: [userMsg], stream: "delta" });
       const events = [];
       for await (const e of result as AsyncIterable<DeltaSSEEvent>) events.push(e);
       expect(events[0].event).toBe("turn_start");
@@ -148,7 +155,7 @@ describe("Session", () => {
       });
       const s = makeSession({ name: "test-agent" }, model);
       const events = [];
-      for await (const e of s.runTurn({
+      for await (const e of runTurn(s, {
         messages: [userMsg],
         stream: "delta",
       }) as AsyncIterable<DeltaSSEEvent>)
@@ -183,7 +190,7 @@ describe("Session", () => {
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
       const events = [];
-      for await (const e of s.runTurn({
+      for await (const e of runTurn(s, {
         messages: [userMsg],
         stream: "delta",
       }) as AsyncIterable<DeltaSSEEvent>) {
@@ -197,7 +204,7 @@ describe("Session", () => {
   describe("runTurn (message mode)", () => {
     it("yields turn_start, text, and turn_stop events", async () => {
       const s = makeSession();
-      const result = s.runTurn({ messages: [userMsg], stream: "message" });
+      const result = runTurn(s, { messages: [userMsg], stream: "message" });
       const events = [];
       for await (const e of result as AsyncIterable<SSEEvent>) events.push(e);
       expect(events[0].event).toBe("turn_start");
@@ -214,7 +221,7 @@ describe("Session", () => {
       });
       const s = makeSession({ name: "test-agent" }, model);
       const events = [];
-      for await (const e of s.runTurn({
+      for await (const e of runTurn(s, {
         messages: [userMsg],
         stream: "message",
       }) as AsyncIterable<SSEEvent>) {
@@ -250,7 +257,7 @@ describe("Session", () => {
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
       const events = [];
-      for await (const e of s.runTurn({
+      for await (const e of runTurn(s, {
         messages: [userMsg],
         stream: "message",
       }) as AsyncIterable<SSEEvent>) {
@@ -275,7 +282,7 @@ describe("Session", () => {
           content: [{ type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hello" } }],
         },
       ];
-      await s.runTurn({
+      await runTurn(s, {
         messages: [{ role: "tool_permission", toolCallId: "c1", granted: true }],
       });
       // model.call should have received a tool result message
@@ -295,7 +302,7 @@ describe("Session", () => {
           content: [{ type: "tool_use", toolCallId: "c2", name: "echo", input: { msg: "x" } }],
         },
       ];
-      await s.runTurn({
+      await runTurn(s, {
         messages: [{ role: "tool_permission", toolCallId: "c2", granted: false, reason: "no" }],
       });
       const callArg = (model.call as ReturnType<typeof vi.fn>).mock.calls[0][0] as HistoryMessage[];
@@ -308,19 +315,19 @@ describe("Session", () => {
     it("overrides clientTools when req.tools is provided", async () => {
       const s = makeSession();
       const newTool = { name: "x", description: "", parameters: {} };
-      await s.runTurn({ messages: [userMsg], tools: [newTool] });
+      await runTurn(s, { messages: [userMsg], tools: [newTool] });
       expect(s.clientTools).toEqual([newTool]);
     });
 
     it("overrides agentConfig.tools when req.agent.tools is provided", async () => {
       const s = makeSession();
-      await s.runTurn({ messages: [userMsg], agent: { tools: [{ name: "echo", trust: true }] } });
+      await runTurn(s, { messages: [userMsg], agent: { tools: [{ name: "echo", trust: true }] } });
       expect(s.agentConfig.tools).toEqual([{ name: "echo", trust: true }]);
     });
 
     it("overrides agentConfig.options when req.agent.options is provided", async () => {
       const s = makeSession({ name: "test-agent", options: { model: "gpt-4" } });
-      await s.runTurn({ messages: [userMsg], agent: { options: { model: "gpt-5" } } });
+      await runTurn(s, { messages: [userMsg], agent: { options: { model: "gpt-5" } } });
       expect(s.agentConfig.options).toEqual({ model: "gpt-5" });
     });
   });
@@ -342,7 +349,7 @@ describe("Session", () => {
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
       const events = [];
-      for await (const e of s.runTurn({
+      for await (const e of runTurn(s, {
         messages: [userMsg],
         stream: "delta",
       }) as AsyncIterable<DeltaSSEEvent>)
@@ -367,7 +374,7 @@ describe("Session", () => {
       });
       const s = makeSession({ name: "test-agent" }, model);
       const events = [];
-      for await (const e of s.runTurn({
+      for await (const e of runTurn(s, {
         messages: [userMsg],
         stream: "message",
       }) as AsyncIterable<SSEEvent>)
@@ -391,7 +398,7 @@ describe("Session", () => {
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
       const events = [];
-      for await (const e of s.runTurn({
+      for await (const e of runTurn(s, {
         messages: [userMsg],
         stream: "message",
       }) as AsyncIterable<SSEEvent>)
@@ -417,7 +424,7 @@ describe("Session", () => {
         [],
         [{ role: "assistant", content: "hello" }],
       );
-      const res = (await s2.runTurn({ messages: [userMsg] })) as PostSessionTurnResponse;
+      const res = (await runTurn(s2, { messages: [userMsg] })) as PostSessionTurnResponse;
       expect(res.stopReason).toBe("end_turn");
     });
   });

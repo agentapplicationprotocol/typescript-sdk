@@ -8,7 +8,6 @@ import {
   PostSessionTurnResponse,
   StopReason,
   PostSessionTurnRequest,
-  StreamMode,
   ContentBlock,
   SessionInfo,
   DeltaSSEEvent,
@@ -134,7 +133,9 @@ export class Session {
    * server tools inline, and repeats until a non-tool-use stop or an untrusted
    * tool is encountered.
    */
-  private async *runTurnDelta(messages: TurnMessages): AsyncIterable<DeltaSSEEvent> {
+  async *runTurnDelta(req: PostSessionTurnRequest): AsyncIterable<DeltaSSEEvent> {
+    this.applySessionOverrides(req);
+    const messages = req.messages;
     const incoming = await this.resolvePermissions(messages);
     const trusted = this.trustedTools();
 
@@ -183,7 +184,9 @@ export class Session {
    * events (not deltas). Uses a non-streaming LLM call internally, then emits SSE events
    * from the response. Loops on trusted inline tool calls.
    */
-  private async *runTurnMessage(messages: TurnMessages): AsyncIterable<MessageSSEEvent> {
+  async *runTurnMessage(req: PostSessionTurnRequest): AsyncIterable<MessageSSEEvent> {
+    this.applySessionOverrides(req);
+    const messages = req.messages;
     const incoming = await this.resolvePermissions(messages);
     const trusted = this.trustedTools();
 
@@ -245,7 +248,9 @@ export class Session {
    * Runs a single agent turn without streaming, returning a complete `PostSessionTurnResponse`.
    * Loops the LLM call as long as all tool calls are trusted and executed inline.
    */
-  private async runTurnNone(messages: TurnMessages): Promise<PostSessionTurnResponse> {
+  async runTurnNone(req: PostSessionTurnRequest): Promise<PostSessionTurnResponse> {
+    this.applySessionOverrides(req);
+    const messages = req.messages;
     const incoming = await this.resolvePermissions(messages);
     const trusted = this.trustedTools();
     const newMessages: HistoryMessage[] = [];
@@ -287,22 +292,6 @@ export class Session {
         ...this.agentConfig,
         options: { ...this.agentConfig.options, ...req.agent.options },
       };
-  }
-
-  /** Routes to the appropriate turn runner based on the requested stream mode. */
-  private dispatchTurn(
-    stream: StreamMode | undefined,
-    messages: TurnMessages,
-  ): AsyncIterable<SSEEvent> | Promise<PostSessionTurnResponse> {
-    if (stream === "delta") return this.runTurnDelta(messages);
-    if (stream === "message") return this.runTurnMessage(messages);
-    return this.runTurnNone(messages);
-  }
-
-  /** Dispatches to the appropriate turn runner based on `stream` mode. Applies optional config overrides that persist for the session lifetime. */
-  runTurn(req: PostSessionTurnRequest): AsyncIterable<SSEEvent> | Promise<PostSessionTurnResponse> {
-    this.applySessionOverrides(req);
-    return this.dispatchTurn(req.stream, req.messages);
   }
 
   /** Returns all `tool_use` blocks from the most recent assistant message in history. */

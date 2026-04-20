@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **server**: `Handler.getSession` now returns `GetSessionResponse | undefined` instead of throwing when session is not found
 - **server**: `Handler.getSessionHistory` signature changed to `(sessionId: string, type) => Promise<HistoryMessage[] | undefined>` — returns `undefined` when session is not found; the router responds with 404 accordingly
 - **server**: `Handler` methods renamed to match endpoint conventions: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
+- **server**: `Handler.postSessionTurn` split into three distinct methods: `postSessionTurnStreamNone`, `postSessionTurnStreamDelta` (returns `AsyncIterable<DeltaSSEEvent>`), `postSessionTurnStreamMessage` (returns `AsyncIterable<MessageSSEEvent>`)
+- **server**: `Session.runTurn` removed; replaced by `runTurnNone`, `runTurnDelta`, `runTurnMessage` (each takes a full `PostSessionTurnRequest`)
 - **client**: Client methods renamed to match: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
 
 ## [0.7.3] - 2026-04-18
