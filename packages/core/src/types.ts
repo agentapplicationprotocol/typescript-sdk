@@ -237,14 +237,12 @@ export interface SessionResponse {
   tools?: ToolSpec[];
 }
 
+/** History type for `GET /sessions/:id/history`. */
+export type HistoryType = "compacted" | "full";
+
 /** Response body for `GET /sessions/:id/history`. */
 export interface SessionHistoryResponse {
-  history: {
-    /** Present when `?type=compacted` */
-    compacted?: HistoryMessage[];
-    /** Present when `?type=full` */
-    full?: HistoryMessage[];
-  };
+  history: Partial<Record<HistoryType, HistoryMessage[]>>;
 }
 
 /** Response body for `GET /sessions`. */

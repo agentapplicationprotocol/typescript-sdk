@@ -10,6 +10,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type {
   CreateSessionRequest,
   CreateSessionResponse,
+  HistoryType,
   SessionTurnRequest,
 } from "@agentapplicationprotocol/core";
 import type { Handler } from "../../server.js";
@@ -101,7 +102,7 @@ const handler: Handler = {
     return session?.toSessionResponse();
   },
 
-  async getSessionHistory(sessionId: string, type: "compacted" | "full") {
+  async getSessionHistory(sessionId: string, type: HistoryType) {
     // history is never compacted, so compacted and full are the same
     return sessions.get(sessionId)?.history;
   },

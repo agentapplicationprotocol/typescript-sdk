@@ -3,6 +3,7 @@ import {
   AgentResponse,
   CreateSessionRequest,
   CreateSessionResponse,
+  HistoryType,
   MetaResponse,
   SessionHistoryResponse,
   SessionListResponse,
@@ -111,10 +112,7 @@ export class Client {
   }
 
   /** GET /sessions/:id/history */
-  getSessionHistory(
-    sessionId: string,
-    type: "compacted" | "full",
-  ): Promise<SessionHistoryResponse> {
+  getSessionHistory(sessionId: string, type: HistoryType): Promise<SessionHistoryResponse> {
     return this.request(
       "GET",
       `/sessions/${sessionId}/history?${new URLSearchParams({ type }).toString()}`,

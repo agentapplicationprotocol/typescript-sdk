@@ -7,6 +7,7 @@ import {
   CreateSessionRequest,
   CreateSessionResponse,
   HistoryMessage,
+  HistoryType,
   MetaResponse,
   SessionListResponse,
   SessionResponse,
@@ -20,10 +21,7 @@ export interface Handler {
   getMeta(): Omit<MetaResponse, "version">;
   listSessions(params: { after?: string }): Promise<SessionListResponse>;
   getSession(sessionId: string): Promise<SessionResponse | undefined>;
-  getSessionHistory(
-    sessionId: string,
-    type: "compacted" | "full",
-  ): Promise<HistoryMessage[] | undefined>;
+  getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
   createSession(req: CreateSessionRequest): Promise<CreateSessionResponse>;
   sendTurn(
     sessionId: string,

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **core**: New `HistoryType = "compacted" | "full"` type; `SessionHistoryResponse.history` is now typed as `Partial<Record<HistoryType, HistoryMessage[]>>`
+
 ### Changed
 
 - **server**: `Handler.getSession` now returns `SessionResponse | undefined` instead of throwing when session is not found

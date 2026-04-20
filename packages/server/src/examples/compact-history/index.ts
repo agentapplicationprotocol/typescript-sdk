@@ -11,6 +11,7 @@ import { TruncatedHistorySession, sessions } from "./session.js";
 import type {
   CreateSessionRequest,
   CreateSessionResponse,
+  HistoryType,
   SessionTurnRequest,
 } from "@agentapplicationprotocol/core";
 import type { Handler } from "../../server.js";
@@ -97,7 +98,7 @@ const handler: Handler = {
     return session?.toSessionResponse();
   },
 
-  async getSessionHistory(sessionId: string, type: "compacted" | "full") {
+  async getSessionHistory(sessionId: string, type: HistoryType) {
     const session = sessions.get(sessionId);
     return type === "compacted" ? session?.history : session?.fullHistory;
   },
