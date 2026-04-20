@@ -1,4 +1,4 @@
-import type { AgentInfo } from "./meta.js";
+import type { AgentInfo } from "./agent.js";
 import type { HistoryMessage } from "./messages.js";
 import type { HistoryType, SessionInfo, StopReason } from "./session.js";
 

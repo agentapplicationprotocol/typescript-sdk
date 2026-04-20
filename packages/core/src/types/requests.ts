@@ -4,7 +4,8 @@ import type {
   ToolPermissionMessage,
   UserMessage,
 } from "./messages.js";
-import type { AgentConfig, StreamMode } from "./session.js";
+import type { AgentConfig } from "./agent.js";
+import type { StreamMode } from "./session.js";
 import type { ToolSpec } from "./tools.js";
 
 // --- Requests ---

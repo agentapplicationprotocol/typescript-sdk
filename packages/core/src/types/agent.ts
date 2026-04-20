@@ -1,7 +1,17 @@
 import type { AgentOption } from "./options.js";
-import type { ToolSpec } from "./tools.js";
+import type { ServerToolRef, ToolSpec } from "./tools.js";
 
-// --- Meta ---
+// --- Agent ---
+
+/** Agent configuration supplied with a request. */
+export interface AgentConfig {
+  /** Agent name to invoke. */
+  name: string;
+  /** Server-side tools to enable. If omitted, all exposed agent tools are disabled. */
+  tools?: ServerToolRef[];
+  /** Key-value pairs matching the agent's declared options. */
+  options?: Record<string, string>;
+}
 
 /** Describes an agent available on the server, as returned by `GET /meta`. */
 export interface AgentInfo {
