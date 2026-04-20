@@ -6,9 +6,6 @@ import type { ToolSpec } from "./tools.js";
 export type StreamMode = "delta" | "message" | "none";
 export type StopReason = "end_turn" | "tool_use" | "max_tokens" | "refusal" | "error";
 
-/** History type for `GET /sessions/:id/history`. */
-export type HistoryType = "compacted" | "full";
-
 /** Session data shape, used in `GET /sessions/:id` and items in `GET /sessions`. */
 export interface SessionInfo {
   sessionId: string;

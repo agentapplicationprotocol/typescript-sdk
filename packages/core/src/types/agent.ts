@@ -3,6 +3,9 @@ import type { ServerToolRef, ToolSpec } from "./tools.js";
 
 // --- Agent ---
 
+/** History type for `GET /sessions/:id/history`. */
+export type HistoryType = "compacted" | "full";
+
 /** Agent configuration supplied with a request. */
 export interface AgentConfig {
   /** Agent name to invoke. */
