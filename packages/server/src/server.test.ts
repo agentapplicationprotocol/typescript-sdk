@@ -16,7 +16,7 @@ import type {
 const meta: GetMetaResponse = { version: 3, agents: [] };
 const session: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
 const agentResponse: PostSessionTurnResponse = { stopReason: "end_turn", messages: [] };
-const createSessionResponse = { sessionId: "s1" };
+const postSessionsResponse = { sessionId: "s1" };
 const sessionList: GetSessionsResponse = { sessions: [session] };
 
 async function* sseEvents(): AsyncIterable<SSEEvent> {
@@ -28,11 +28,11 @@ async function* sseEvents(): AsyncIterable<SSEEvent> {
 function makeHandler(overrides: Partial<Handler> = {}): Handler {
   return {
     getMeta: vi.fn().mockReturnValue({ agents: [] }),
-    listSessions: vi.fn().mockResolvedValue(sessionList),
+    getSessions: vi.fn().mockResolvedValue(sessionList),
     getSession: vi.fn().mockResolvedValue(session),
     getSessionHistory: vi.fn().mockResolvedValue([] satisfies HistoryMessage[]),
-    createSession: vi.fn().mockResolvedValue(createSessionResponse),
-    sendTurn: vi.fn().mockResolvedValue(agentResponse),
+    postSessions: vi.fn().mockResolvedValue(postSessionsResponse),
+    postSessionTurn: vi.fn().mockResolvedValue(agentResponse),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -104,7 +104,7 @@ describe("aap middleware", () => {
     const res = await app.fetch(req("GET", "/sessions?after=cursor1"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(sessionList);
-    expect(handler.listSessions).toHaveBeenCalledWith({ after: "cursor1" });
+    expect(handler.getSessions).toHaveBeenCalledWith({ after: "cursor1" });
   });
 
   it("GET /sessions redacts secret options in each session", async () => {
@@ -114,7 +114,7 @@ describe("aap middleware", () => {
     };
     const app = makeApp(
       makeHandler({
-        listSessions: vi.fn().mockResolvedValue({ sessions: [secretSession] }),
+        getSessions: vi.fn().mockResolvedValue({ sessions: [secretSession] }),
         getMeta: vi.fn().mockReturnValue({
           agents: [
             {
@@ -145,7 +145,7 @@ describe("aap middleware", () => {
     const app = makeApp(makeHandler());
     const res = await app.fetch(req("POST", "/sessions", { agent: { name: "a" } }));
     expect(res.status).toBe(201);
-    expect(await res.json()).toEqual(createSessionResponse);
+    expect(await res.json()).toEqual(postSessionsResponse);
   });
 
   it("POST /sessions/:id/turns returns PostSessionTurnResponse", async () => {
@@ -158,7 +158,7 @@ describe("aap middleware", () => {
   });
 
   it("POST /sessions/:id/turns with stream returns SSE", async () => {
-    const app = makeApp(makeHandler({ sendTurn: vi.fn().mockResolvedValue(sseEvents()) }));
+    const app = makeApp(makeHandler({ postSessionTurn: vi.fn().mockResolvedValue(sseEvents()) }));
     const res = await app.fetch(
       req("POST", "/sessions/s1/turns", {
         messages: [{ role: "user", content: "hi" }],

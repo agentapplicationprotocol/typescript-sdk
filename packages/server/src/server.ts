@@ -20,11 +20,11 @@ import {
 
 export interface Handler {
   getMeta(): Omit<GetMetaResponse, "version">;
-  listSessions(params: { after?: string }): Promise<GetSessionsResponse>;
+  getSessions(params: { after?: string }): Promise<GetSessionsResponse>;
   getSession(sessionId: string): Promise<GetSessionResponse | undefined>;
   getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
-  createSession(req: PostSessionsRequest): Promise<PostSessionsResponse>;
-  sendTurn(
+  postSessions(req: PostSessionsRequest): Promise<PostSessionsResponse>;
+  postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest,
   ): Promise<PostSessionTurnResponse> | AsyncIterable<SSEEvent>;
@@ -85,13 +85,13 @@ export function aap(handler: Handler): Hono {
 
   router.post("/sessions", async (c) => {
     const req = await c.req.json<PostSessionsRequest>();
-    const result = await handler.createSession(req);
+    const result = await handler.postSessions(req);
     return c.json(result as PostSessionsResponse, 201);
   });
 
   router.post("/sessions/:id/turns", async (c) => {
     const req = await c.req.json<PostSessionTurnRequest>();
-    const result = await handler.sendTurn(c.req.param("id"), req);
+    const result = await handler.postSessionTurn(c.req.param("id"), req);
     if (req.stream === "delta" || req.stream === "message") {
       return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
     }
@@ -116,7 +116,7 @@ export function aap(handler: Handler): Hono {
 
   router.get("/sessions", async (c) => {
     const after = c.req.query("after");
-    const result = await handler.listSessions({ after });
+    const result = await handler.getSessions({ after });
     const { agents } = handler.getMeta();
     return c.json({
       ...result,

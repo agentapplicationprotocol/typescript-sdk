@@ -91,18 +91,18 @@ describe("Client", () => {
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions/s1/history?type=full`);
   });
 
-  it("listSessions: GET /sessions without cursor", async () => {
+  it("getSessions: GET /sessions without cursor", async () => {
     const res: GetSessionsResponse = { sessions: [{ sessionId: "s1", agent: { name: "a" } }] };
     const fetch = mockFetch(res);
     vi.stubGlobal("fetch", fetch);
-    await client.listSessions();
+    await client.getSessions();
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions`);
   });
 
-  it("listSessions: appends after param", async () => {
+  it("getSessions: appends after param", async () => {
     const fetch = mockFetch({ sessions: [] } satisfies GetSessionsResponse);
     vi.stubGlobal("fetch", fetch);
-    await client.listSessions({ after: "cursor1" });
+    await client.getSessions({ after: "cursor1" });
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions?after=cursor1`);
   });
 
@@ -131,28 +131,30 @@ describe("Client", () => {
     await expect(client.deleteSession("s1")).resolves.toBeUndefined();
   });
 
-  it("createSession: POST /sessions returns sessionId", async () => {
+  it("postSessions: POST /sessions returns sessionId", async () => {
     const res: PostSessionsResponse = { sessionId: "s1" };
     vi.stubGlobal("fetch", mockFetch(res, 201));
-    const result = await client.createSession({ agent: { name: "a" } });
+    const result = await client.postSessions({ agent: { name: "a" } });
     expect(result).toEqual(res);
   });
 
-  it("sendTurn: non-streaming returns PostSessionTurnResponse", async () => {
+  it("postSessionTurn: non-streaming returns PostSessionTurnResponse", async () => {
     const res: PostSessionTurnResponse = { stopReason: "end_turn", messages: [] };
     vi.stubGlobal("fetch", mockFetch(res));
-    const result = await client.sendTurn("s1", { messages: [{ role: "user", content: "hi" }] });
+    const result = await client.postSessionTurn("s1", {
+      messages: [{ role: "user", content: "hi" }],
+    });
     expect(result).toEqual(res);
   });
 
-  it("sendTurn: streaming returns SSE events", async () => {
+  it("postSessionTurn: streaming returns SSE events", async () => {
     const events: SSEEvent[] = [
       { event: "turn_start" },
       { event: "text", text: "hello" },
       { event: "turn_stop", stopReason: "end_turn" },
     ];
     vi.stubGlobal("fetch", mockSSEFetch(events));
-    const stream = await client.sendTurn("s1", {
+    const stream = await client.postSessionTurn("s1", {
       messages: [{ role: "user", content: "hi" }],
       stream: "message",
     });
@@ -172,7 +174,7 @@ describe("Client", () => {
       }),
     );
     await expect(
-      client.sendTurn("s1", {
+      client.postSessionTurn("s1", {
         messages: [{ role: "user", content: "hi" }],
         stream: "delta",
       }),

@@ -86,7 +86,7 @@ export class Client {
   }
 
   /** GET /sessions */
-  listSessions(params?: { after?: string }): Promise<GetSessionsResponse> {
+  getSessions(params?: { after?: string }): Promise<GetSessionsResponse> {
     let path = "/sessions";
     if (params?.after) {
       path += "?" + new URLSearchParams({ after: params.after }).toString();
@@ -99,7 +99,7 @@ export class Client {
     const sessions: SessionInfo[] = [];
     let after: string | undefined;
     do {
-      const res = await this.listSessions({ after });
+      const res = await this.getSessions({ after });
       sessions.push(...res.sessions);
       after = res.next;
     } while (after);
@@ -120,21 +120,21 @@ export class Client {
   }
 
   /** POST /sessions */
-  createSession(req: PostSessionsRequest): Promise<PostSessionsResponse> {
+  postSessions(req: PostSessionsRequest): Promise<PostSessionsResponse> {
     return this.request("POST", "/sessions", req);
   }
 
   /** POST /sessions/:id/turns — non-streaming */
-  sendTurn(
+  postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest & { stream?: "none" },
   ): Promise<PostSessionTurnResponse>;
   /** POST /sessions/:id/turns — SSE streaming */
-  sendTurn(
+  postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest & { stream: "delta" | "message" },
   ): Promise<AsyncIterable<SSEEvent>>;
-  sendTurn(
+  postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest,
   ): Promise<PostSessionTurnResponse | AsyncIterable<SSEEvent>> {

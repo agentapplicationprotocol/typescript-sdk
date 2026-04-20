@@ -60,7 +60,7 @@ export class Session {
     req: PostSessionsRequest,
     agentInfo: AgentInfo,
   ): Promise<Session> {
-    const { sessionId } = await client.createSession(req);
+    const { sessionId } = await client.postSessions(req);
     const session = new Session(
       sessionId,
       client,
@@ -146,7 +146,7 @@ export class Session {
     let newMessages: HistoryMessage[];
 
     if (cleanReq.stream === "delta" || cleanReq.stream === "message") {
-      const stream = await this.client.sendTurn(
+      const stream = await this.client.postSessionTurn(
         this.sessionId,
         cleanReq as PostSessionTurnRequest & { stream: "delta" | "message" },
       );
@@ -157,7 +157,7 @@ export class Session {
       }
       [newMessages] = sseEventsToMessages(events);
     } else {
-      const res = await this.client.sendTurn(
+      const res = await this.client.postSessionTurn(
         this.sessionId,
         cleanReq as PostSessionTurnRequest & { stream?: "none" },
       );

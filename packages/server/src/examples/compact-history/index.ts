@@ -67,7 +67,7 @@ const handler: Handler = {
     return { agents: [agent.info] };
   },
 
-  createSession(req: PostSessionsRequest): Promise<PostSessionsResponse> {
+  postSessions(req: PostSessionsRequest): Promise<PostSessionsResponse> {
     const sessionId = `sess_${randomUUID()}`;
     // Build the model from client-supplied options
     const openai = createOpenAI({
@@ -87,7 +87,7 @@ const handler: Handler = {
     return Promise.resolve({ sessionId });
   },
 
-  sendTurn(sessionId: string, req: PostSessionTurnRequest) {
+  postSessionTurn(sessionId: string, req: PostSessionTurnRequest) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     return session.runTurn(req);
@@ -103,7 +103,7 @@ const handler: Handler = {
     return type === "compacted" ? session?.history : session?.fullHistory;
   },
 
-  async listSessions() {
+  async getSessions() {
     return {
       sessions: [...sessions.values()].map((s) => s.toSessionResponse()),
     };
