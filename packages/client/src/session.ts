@@ -2,10 +2,10 @@ import {
   AgentConfig,
   AgentInfo,
   PostSessionTurnResponse,
-  CreateSessionRequest,
+  PostSessionsRequest,
   HistoryMessage,
   SessionInfo,
-  SessionTurnRequest,
+  PostSessionTurnRequest,
   sseEventsToMessages,
   SSEEvent,
   ToolCall,
@@ -57,7 +57,7 @@ export class Session {
    */
   static async create(
     client: Client,
-    req: CreateSessionRequest,
+    req: PostSessionsRequest,
     agentInfo: AgentInfo,
   ): Promise<Session> {
     const { sessionId } = await client.createSession(req);
@@ -104,7 +104,7 @@ export class Session {
    * @param cb - Optional callback invoked for each SSE event in streaming mode.
    * @returns Any pending tool calls from this turn.
    */
-  async send(req: SessionTurnRequest, cb?: (e: SSEEvent) => void): Promise<PendingToolUse> {
+  async send(req: PostSessionTurnRequest, cb?: (e: SSEEvent) => void): Promise<PendingToolUse> {
     // Strip unchanged tools (compare by JSON equality)
     const toolsChanged =
       req.tools !== undefined && JSON.stringify(req.tools) !== JSON.stringify(this.tools);
@@ -123,7 +123,7 @@ export class Session {
       : undefined;
     const agentOptionsChanged = changedOptions && Object.keys(changedOptions).length > 0;
 
-    const cleanReq: SessionTurnRequest = {
+    const cleanReq: PostSessionTurnRequest = {
       ...req,
       tools: toolsChanged ? req.tools : undefined,
       agent:
@@ -148,7 +148,7 @@ export class Session {
     if (cleanReq.stream === "delta" || cleanReq.stream === "message") {
       const stream = await this.client.sendTurn(
         this.sessionId,
-        cleanReq as SessionTurnRequest & { stream: "delta" | "message" },
+        cleanReq as PostSessionTurnRequest & { stream: "delta" | "message" },
       );
       const events: SSEEvent[] = [];
       for await (const e of stream) {
@@ -159,7 +159,7 @@ export class Session {
     } else {
       const res = await this.client.sendTurn(
         this.sessionId,
-        cleanReq as SessionTurnRequest & { stream?: "none" },
+        cleanReq as PostSessionTurnRequest & { stream?: "none" },
       );
       newMessages = (res as PostSessionTurnResponse).messages;
     }

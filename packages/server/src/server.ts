@@ -8,11 +8,11 @@ import {
   GetSessionsResponse,
   PostSessionTurnResponse,
   PostSessionsResponse,
-  CreateSessionRequest,
+  PostSessionsRequest,
   HistoryMessage,
   HistoryType,
   SessionInfo,
-  SessionTurnRequest,
+  PostSessionTurnRequest,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 
@@ -23,10 +23,10 @@ export interface Handler {
   listSessions(params: { after?: string }): Promise<GetSessionsResponse>;
   getSession(sessionId: string): Promise<GetSessionResponse | undefined>;
   getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
-  createSession(req: CreateSessionRequest): Promise<PostSessionsResponse>;
+  createSession(req: PostSessionsRequest): Promise<PostSessionsResponse>;
   sendTurn(
     sessionId: string,
-    req: SessionTurnRequest,
+    req: PostSessionTurnRequest,
   ): Promise<PostSessionTurnResponse> | AsyncIterable<SSEEvent>;
   deleteSession(sessionId: string): Promise<void>;
 }
@@ -84,13 +84,13 @@ export function aap(handler: Handler): Hono {
   );
 
   router.post("/sessions", async (c) => {
-    const req = await c.req.json<CreateSessionRequest>();
+    const req = await c.req.json<PostSessionsRequest>();
     const result = await handler.createSession(req);
     return c.json(result as PostSessionsResponse, 201);
   });
 
   router.post("/sessions/:id/turns", async (c) => {
-    const req = await c.req.json<SessionTurnRequest>();
+    const req = await c.req.json<PostSessionTurnRequest>();
     const result = await handler.sendTurn(c.req.param("id"), req);
     if (req.stream === "delta" || req.stream === "message") {
       return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));

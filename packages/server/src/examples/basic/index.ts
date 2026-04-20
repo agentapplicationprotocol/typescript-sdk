@@ -8,10 +8,10 @@ import { Agent } from "../../agent.js";
 import { AiModelProvider } from "../../model.js";
 import { createOpenAI } from "@ai-sdk/openai";
 import type {
-  CreateSessionRequest,
+  PostSessionsRequest,
   PostSessionsResponse,
   HistoryType,
-  SessionTurnRequest,
+  PostSessionTurnRequest,
 } from "@agentapplicationprotocol/core";
 import type { Handler } from "../../server.js";
 import { Session } from "../../session.js";
@@ -69,7 +69,7 @@ const handler: Handler = {
     return { agents: [agent.info] };
   },
 
-  createSession(req: CreateSessionRequest): Promise<PostSessionsResponse> {
+  createSession(req: PostSessionsRequest): Promise<PostSessionsResponse> {
     const sessionId = `sess_${randomUUID()}`;
 
     // Build the model from client-supplied options
@@ -91,7 +91,7 @@ const handler: Handler = {
     return Promise.resolve({ sessionId });
   },
 
-  sendTurn(sessionId: string, req: SessionTurnRequest) {
+  sendTurn(sessionId: string, req: PostSessionTurnRequest) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     return session.runTurn(req);

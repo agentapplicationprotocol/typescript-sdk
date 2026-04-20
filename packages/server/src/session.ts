@@ -7,7 +7,7 @@ import {
   sseEventsToMessages,
   PostSessionTurnResponse,
   StopReason,
-  SessionTurnRequest,
+  PostSessionTurnRequest,
   StreamMode,
   ContentBlock,
   SessionInfo,
@@ -276,7 +276,7 @@ export class Session {
   }
 
   /** Applies config overrides from the request that persist for the session lifetime: client tools, enabled/trusted agent tools, and agent options. */
-  private applySessionOverrides(req: SessionTurnRequest): void {
+  private applySessionOverrides(req: PostSessionTurnRequest): void {
     // Override client-provided tools
     if (req.tools) this.clientTools = req.tools;
     // Override enabled and trusted agent tools
@@ -300,7 +300,7 @@ export class Session {
   }
 
   /** Dispatches to the appropriate turn runner based on `stream` mode. Applies optional config overrides that persist for the session lifetime. */
-  runTurn(req: SessionTurnRequest): AsyncIterable<SSEEvent> | Promise<PostSessionTurnResponse> {
+  runTurn(req: PostSessionTurnRequest): AsyncIterable<SSEEvent> | Promise<PostSessionTurnResponse> {
     this.applySessionOverrides(req);
     return this.dispatchTurn(req.stream, req.messages);
   }

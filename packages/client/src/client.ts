@@ -1,14 +1,14 @@
 import { createParser } from "eventsource-parser";
 import {
   PostSessionTurnResponse,
-  CreateSessionRequest,
+  PostSessionsRequest,
   PostSessionsResponse,
   HistoryType,
   GetMetaResponse,
   GetSessionHistoryResponse,
   GetSessionsResponse,
   SessionInfo,
-  SessionTurnRequest,
+  PostSessionTurnRequest,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 
@@ -120,23 +120,23 @@ export class Client {
   }
 
   /** POST /sessions */
-  createSession(req: CreateSessionRequest): Promise<PostSessionsResponse> {
+  createSession(req: PostSessionsRequest): Promise<PostSessionsResponse> {
     return this.request("POST", "/sessions", req);
   }
 
   /** POST /sessions/:id/turns — non-streaming */
   sendTurn(
     sessionId: string,
-    req: SessionTurnRequest & { stream?: "none" },
+    req: PostSessionTurnRequest & { stream?: "none" },
   ): Promise<PostSessionTurnResponse>;
   /** POST /sessions/:id/turns — SSE streaming */
   sendTurn(
     sessionId: string,
-    req: SessionTurnRequest & { stream: "delta" | "message" },
+    req: PostSessionTurnRequest & { stream: "delta" | "message" },
   ): Promise<AsyncIterable<SSEEvent>>;
   sendTurn(
     sessionId: string,
-    req: SessionTurnRequest,
+    req: PostSessionTurnRequest,
   ): Promise<PostSessionTurnResponse | AsyncIterable<SSEEvent>> {
     if (req.stream === "delta" || req.stream === "message") {
       return this.streamRequest("POST", `/sessions/${sessionId}/turns`, req);
