@@ -1,13 +1,13 @@
 import { createParser } from "eventsource-parser";
 import {
-  AgentResponse,
+  PostSessionTurnResponse,
   CreateSessionRequest,
-  CreateSessionResponse,
+  PostSessionsResponse,
   HistoryType,
-  MetaResponse,
-  SessionHistoryResponse,
-  SessionListResponse,
-  SessionResponse,
+  GetMetaResponse,
+  GetSessionHistoryResponse,
+  GetSessionsResponse,
+  SessionInfo,
   SessionTurnRequest,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
@@ -77,8 +77,8 @@ export class Client {
   }
 
   /** GET /meta */
-  async getMeta(): Promise<MetaResponse> {
-    const meta = await this.request<MetaResponse>("GET", "/meta");
+  async getMeta(): Promise<GetMetaResponse> {
+    const meta = await this.request<GetMetaResponse>("GET", "/meta");
     if (meta.version !== 3) {
       throw new Error(`Protocol version mismatch: expected 3, got ${meta.version}`);
     }
@@ -86,7 +86,7 @@ export class Client {
   }
 
   /** GET /sessions */
-  listSessions(params?: { after?: string }): Promise<SessionListResponse> {
+  listSessions(params?: { after?: string }): Promise<GetSessionsResponse> {
     let path = "/sessions";
     if (params?.after) {
       path += "?" + new URLSearchParams({ after: params.after }).toString();
@@ -95,8 +95,8 @@ export class Client {
   }
 
   /** Fetches all sessions across all pages. */
-  async listAllSessions(): Promise<SessionResponse[]> {
-    const sessions: SessionResponse[] = [];
+  async listAllSessions(): Promise<SessionInfo[]> {
+    const sessions: SessionInfo[] = [];
     let after: string | undefined;
     do {
       const res = await this.listSessions({ after });
@@ -107,12 +107,12 @@ export class Client {
   }
 
   /** GET /sessions/:id */
-  getSession(sessionId: string): Promise<SessionResponse> {
+  getSession(sessionId: string): Promise<SessionInfo> {
     return this.request("GET", `/sessions/${sessionId}`);
   }
 
   /** GET /sessions/:id/history */
-  getSessionHistory(sessionId: string, type: HistoryType): Promise<SessionHistoryResponse> {
+  getSessionHistory(sessionId: string, type: HistoryType): Promise<GetSessionHistoryResponse> {
     return this.request(
       "GET",
       `/sessions/${sessionId}/history?${new URLSearchParams({ type }).toString()}`,
@@ -120,7 +120,7 @@ export class Client {
   }
 
   /** POST /sessions */
-  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse> {
+  createSession(req: CreateSessionRequest): Promise<PostSessionsResponse> {
     return this.request("POST", "/sessions", req);
   }
 
@@ -128,7 +128,7 @@ export class Client {
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest & { stream?: "none" },
-  ): Promise<AgentResponse>;
+  ): Promise<PostSessionTurnResponse>;
   /** POST /sessions/:id/turns — SSE streaming */
   sendTurn(
     sessionId: string,
@@ -137,7 +137,7 @@ export class Client {
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest,
-  ): Promise<AgentResponse | AsyncIterable<SSEEvent>> {
+  ): Promise<PostSessionTurnResponse | AsyncIterable<SSEEvent>> {
     if (req.stream === "delta" || req.stream === "message") {
       return this.streamRequest("POST", `/sessions/${sessionId}/turns`, req);
     }

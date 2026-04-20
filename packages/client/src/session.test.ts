@@ -3,9 +3,9 @@ import { Client } from "./client";
 import { Session } from "./session";
 import type {
   AgentInfo,
-  AgentResponse,
-  CreateSessionResponse,
-  SessionResponse,
+  PostSessionTurnResponse,
+  PostSessionsResponse,
+  SessionInfo,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 
@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 describe("Session.load", () => {
-  const sessionRes: SessionResponse = { sessionId: "s1", agent: { name: "test-agent" } };
+  const sessionRes: SessionInfo = { sessionId: "s1", agent: { name: "test-agent" } };
 
   it("returns session with correct sessionId and agentConfig", async () => {
     const { session } = await Session.load(client, sessionRes, agentInfo);
@@ -91,7 +91,7 @@ describe("Session.load", () => {
       },
     ];
     vi.stubGlobal("fetch", mockFetch({ history: { full: history } }));
-    const res: SessionResponse = { sessionId: "s1", agent: { name: "test-agent" }, tools };
+    const res: SessionInfo = { sessionId: "s1", agent: { name: "test-agent" }, tools };
     const { pending } = await Session.load(client, res, agentInfo, "full");
     expect(pending.client).toEqual([{ toolCallId: "tc1", name: "myTool", input: {} }]);
     expect(pending.server).toEqual([]);
@@ -114,7 +114,7 @@ describe("Session.load", () => {
 
 describe("Session.create", () => {
   it("creates session and seeds history from messages", async () => {
-    const createRes: CreateSessionResponse = { sessionId: "s1" };
+    const createRes: PostSessionsResponse = { sessionId: "s1" };
     vi.stubGlobal("fetch", mockFetch(createRes, 201));
     const session = await Session.create(
       client,
@@ -129,7 +129,7 @@ describe("Session.create", () => {
   });
 
   it("creates session with empty history when no messages", async () => {
-    const createRes: CreateSessionResponse = { sessionId: "s1" };
+    const createRes: PostSessionsResponse = { sessionId: "s1" };
     vi.stubGlobal("fetch", mockFetch(createRes, 201));
     const session = await Session.create(client, { agent: { name: "test-agent" } }, agentInfo);
     expect(session.history).toEqual([]);
@@ -138,14 +138,14 @@ describe("Session.create", () => {
 
 describe("Session.send", () => {
   async function makeSession() {
-    const createRes: CreateSessionResponse = { sessionId: "s1" };
+    const createRes: PostSessionsResponse = { sessionId: "s1" };
     vi.stubGlobal("fetch", mockFetch(createRes, 201));
     return Session.create(client, { agent: { name: "test-agent" } }, agentInfo);
   }
 
   it("non-streaming: appends messages and returns pending", async () => {
     const session = await makeSession();
-    const turnRes: AgentResponse = {
+    const turnRes: PostSessionTurnResponse = {
       stopReason: "end_turn",
       messages: [{ role: "assistant", content: "reply" }],
     };
@@ -174,7 +174,10 @@ describe("Session.send", () => {
       { name: "t", description: "d", parameters: { type: "object" as const, properties: {} } },
     ];
     session.tools = tools;
-    const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
+    const fetch = mockFetch({
+      stopReason: "end_turn",
+      messages: [],
+    } satisfies PostSessionTurnResponse);
     vi.stubGlobal("fetch", fetch);
     await session.send({ messages: [{ role: "user", content: "hi" }], tools });
     const body = JSON.parse(fetch.mock.calls[0][1].body);
@@ -186,7 +189,10 @@ describe("Session.send", () => {
     const newTools = [
       { name: "t2", description: "d", parameters: { type: "object" as const, properties: {} } },
     ];
-    const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
+    const fetch = mockFetch({
+      stopReason: "end_turn",
+      messages: [],
+    } satisfies PostSessionTurnResponse);
     vi.stubGlobal("fetch", fetch);
     await session.send({ messages: [{ role: "user", content: "hi" }], tools: newTools });
     const body = JSON.parse(fetch.mock.calls[0][1].body);
@@ -197,7 +203,10 @@ describe("Session.send", () => {
   it("sends only changed agent options", async () => {
     const session = await makeSession();
     session.agentConfig = { name: "test-agent", options: { model: "gpt-4" } };
-    const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
+    const fetch = mockFetch({
+      stopReason: "end_turn",
+      messages: [],
+    } satisfies PostSessionTurnResponse);
     vi.stubGlobal("fetch", fetch);
     await session.send({
       messages: [{ role: "user", content: "hi" }],
@@ -209,7 +218,10 @@ describe("Session.send", () => {
 
   it("omits agent if nothing changed", async () => {
     const session = await makeSession();
-    const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
+    const fetch = mockFetch({
+      stopReason: "end_turn",
+      messages: [],
+    } satisfies PostSessionTurnResponse);
     vi.stubGlobal("fetch", fetch);
     await session.send({ messages: [{ role: "user", content: "hi" }] });
     const body = JSON.parse(fetch.mock.calls[0][1].body);
@@ -220,7 +232,10 @@ describe("Session.send", () => {
     const session = await makeSession();
     const tools = [{ name: "echo", trust: true }];
     session.agentConfig = { name: "test-agent", tools };
-    const fetch = mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse);
+    const fetch = mockFetch({
+      stopReason: "end_turn",
+      messages: [],
+    } satisfies PostSessionTurnResponse);
     vi.stubGlobal("fetch", fetch);
     await session.send({ messages: [{ role: "user", content: "hi" }], agent: { tools } });
     const body = JSON.parse(fetch.mock.calls[0][1].body);
@@ -232,7 +247,7 @@ describe("Session.send", () => {
     const newTools = [{ name: "echo", trust: true }];
     vi.stubGlobal(
       "fetch",
-      mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse),
+      mockFetch({ stopReason: "end_turn", messages: [] } satisfies PostSessionTurnResponse),
     );
     await session.send({ messages: [{ role: "user", content: "hi" }], agent: { tools: newTools } });
     expect(session.agentConfig.tools).toEqual(newTools);
@@ -243,7 +258,7 @@ describe("Session.send", () => {
     session.agentConfig = { name: "test-agent", options: { model: "gpt-4" } };
     vi.stubGlobal(
       "fetch",
-      mockFetch({ stopReason: "end_turn", messages: [] } satisfies AgentResponse),
+      mockFetch({ stopReason: "end_turn", messages: [] } satisfies PostSessionTurnResponse),
     );
     await session.send({
       messages: [{ role: "user", content: "hi" }],

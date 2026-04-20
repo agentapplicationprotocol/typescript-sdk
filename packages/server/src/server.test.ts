@@ -5,19 +5,19 @@ import { cors } from "hono/cors";
 import { aap } from "./server";
 import type { Handler } from "./server";
 import type {
-  AgentResponse,
+  PostSessionTurnResponse,
   HistoryMessage,
-  MetaResponse,
-  SessionListResponse,
-  SessionResponse,
+  GetMetaResponse,
+  GetSessionsResponse,
+  SessionInfo,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 
-const meta: MetaResponse = { version: 3, agents: [] };
-const session: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
-const agentResponse: AgentResponse = { stopReason: "end_turn", messages: [] };
+const meta: GetMetaResponse = { version: 3, agents: [] };
+const session: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
+const agentResponse: PostSessionTurnResponse = { stopReason: "end_turn", messages: [] };
 const createSessionResponse = { sessionId: "s1" };
-const sessionList: SessionListResponse = { sessions: [session] };
+const sessionList: GetSessionsResponse = { sessions: [session] };
 
 async function* sseEvents(): AsyncIterable<SSEEvent> {
   yield { event: "turn_start" };
@@ -69,7 +69,7 @@ describe("aap middleware", () => {
   });
 
   it("GET /session/:id redacts secret options", async () => {
-    const secretSession: SessionResponse = {
+    const secretSession: SessionInfo = {
       sessionId: "s1",
       agent: { name: "a", options: { key: "mysecret", model: "gpt-4" } },
     };
@@ -108,7 +108,7 @@ describe("aap middleware", () => {
   });
 
   it("GET /sessions redacts secret options in each session", async () => {
-    const secretSession: SessionResponse = {
+    const secretSession: SessionInfo = {
       sessionId: "s1",
       agent: { name: "a", options: { key: "mysecret", model: "gpt-4" } },
     };
@@ -148,7 +148,7 @@ describe("aap middleware", () => {
     expect(await res.json()).toEqual(createSessionResponse);
   });
 
-  it("POST /sessions/:id/turns returns AgentResponse", async () => {
+  it("POST /sessions/:id/turns returns PostSessionTurnResponse", async () => {
     const app = makeApp(makeHandler());
     const res = await app.fetch(
       req("POST", "/sessions/s1/turns", { messages: [{ role: "user", content: "hi" }] }),
@@ -201,7 +201,7 @@ describe("aap middleware", () => {
   });
 
   it("GET /session/:id does not redact when agent not found in meta", async () => {
-    const sessionWithOptions: SessionResponse = {
+    const sessionWithOptions: SessionInfo = {
       sessionId: "s1",
       agent: { name: "unknown", options: { key: "secret" } },
     };
@@ -216,7 +216,7 @@ describe("aap middleware", () => {
   });
 
   it("GET /session/:id does not redact when agent has no secret options", async () => {
-    const sessionWithOptions: SessionResponse = {
+    const sessionWithOptions: SessionInfo = {
       sessionId: "s1",
       agent: { name: "a", options: { model: "gpt-4" } },
     };

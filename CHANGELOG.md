@@ -9,11 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **core**: New `HistoryType = "compacted" | "full"` type; `SessionHistoryResponse.history` is now typed as `Partial<Record<HistoryType, HistoryMessage[]>>`
+- **core**: New `HistoryType = "compacted" | "full"` type; `GetSessionHistoryResponse.history` is now typed as `Partial<Record<HistoryType, HistoryMessage[]>>`
+- **core**: New `ToolCallInput = Record<string, unknown>` type used in `ToolUseContentBlock.input` and `ToolCall.input`
+- **core**: New `ToolCall` interface (plain tool call payload: `toolCallId`, `name`, `input`) — previously named `ToolCallEvent`
+- **core**: New `ToolResult` interface (`toolCallId`, `content`) shared by `ToolMessage` and `ToolResultEvent`
+- **core**: New `SessionInfo` interface — the session data shape used in `GetSessionResponse` and `GetSessionsResponse.sessions`
 
 ### Changed
 
-- **server**: `Handler.getSession` now returns `SessionResponse | undefined` instead of throwing when session is not found
+- **core**: `ToolCallEvent` renamed to `ToolCall`; `ToolCallSSEEvent` renamed to `ToolCallEvent` (now extends `ToolCall`)
+- **core**: `ToolCallResult` renamed to `ToolResult`
+- **core**: Response types renamed to match endpoint conventions:
+  - `MetaResponse` → `GetMetaResponse`
+  - `AgentResponse` → `PostSessionTurnResponse`
+  - `CreateSessionResponse` → `PostSessionsResponse`
+  - `SessionResponse` → `GetSessionResponse` (type alias for `SessionInfo`)
+  - `SessionHistoryResponse` → `GetSessionHistoryResponse`
+  - `SessionListResponse` → `GetSessionsResponse`
+- **server**: `Handler.getSession` now returns `GetSessionResponse | undefined` instead of throwing when session is not found
 - **server**: `Handler.getSessionHistory` signature changed to `(sessionId: string, type) => Promise<HistoryMessage[] | undefined>` — returns `undefined` when session is not found; the router responds with 404 accordingly
 
 ## [0.7.3] - 2026-04-18

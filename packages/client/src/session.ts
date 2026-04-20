@@ -1,14 +1,14 @@
 import {
   AgentConfig,
   AgentInfo,
-  AgentResponse,
+  PostSessionTurnResponse,
   CreateSessionRequest,
   HistoryMessage,
-  SessionResponse,
+  SessionInfo,
   SessionTurnRequest,
   sseEventsToMessages,
   SSEEvent,
-  ToolCallEvent,
+  ToolCall,
   ToolSpec,
 } from "@agentapplicationprotocol/core";
 import { Client } from "./client";
@@ -17,9 +17,9 @@ import { resolvePendingToolUse } from "./utils";
 /** Unresolved tool calls from a turn, split by origin. */
 export interface PendingToolUse {
   /** Client-side tools — execute locally and send results back via `tool` messages. */
-  client: ToolCallEvent[];
+  client: ToolCall[];
   /** Server-side tools — send `tool_permission` messages to grant or deny. */
-  server: ToolCallEvent[];
+  server: ToolCall[];
 }
 
 /** A stateful client-side session that accumulates history across turns. */
@@ -81,7 +81,7 @@ export class Session {
    */
   static async load(
     client: Client,
-    res: SessionResponse,
+    res: SessionInfo,
     agentInfo: AgentInfo,
     history?: "full" | "compacted",
   ): Promise<{ session: Session; pending: PendingToolUse }> {
@@ -161,7 +161,7 @@ export class Session {
         this.sessionId,
         cleanReq as SessionTurnRequest & { stream?: "none" },
       );
-      newMessages = (res as AgentResponse).messages;
+      newMessages = (res as PostSessionTurnResponse).messages;
     }
 
     this.history.push(...(req.messages as HistoryMessage[]), ...newMessages);

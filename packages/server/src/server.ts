@@ -3,14 +3,15 @@ import { streamSSE } from "hono/streaming";
 import type { SSEStreamingApi } from "hono/streaming";
 import {
   AgentInfo,
-  AgentResponse,
+  GetMetaResponse,
+  GetSessionResponse,
+  GetSessionsResponse,
+  PostSessionTurnResponse,
+  PostSessionsResponse,
   CreateSessionRequest,
-  CreateSessionResponse,
   HistoryMessage,
   HistoryType,
-  MetaResponse,
-  SessionListResponse,
-  SessionResponse,
+  SessionInfo,
   SessionTurnRequest,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
@@ -18,15 +19,15 @@ import {
 // --- Handler interface ---
 
 export interface Handler {
-  getMeta(): Omit<MetaResponse, "version">;
-  listSessions(params: { after?: string }): Promise<SessionListResponse>;
-  getSession(sessionId: string): Promise<SessionResponse | undefined>;
+  getMeta(): Omit<GetMetaResponse, "version">;
+  listSessions(params: { after?: string }): Promise<GetSessionsResponse>;
+  getSession(sessionId: string): Promise<GetSessionResponse | undefined>;
   getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
-  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse>;
+  createSession(req: CreateSessionRequest): Promise<PostSessionsResponse>;
   sendTurn(
     sessionId: string,
     req: SessionTurnRequest,
-  ): Promise<AgentResponse> | AsyncIterable<SSEEvent>;
+  ): Promise<PostSessionTurnResponse> | AsyncIterable<SSEEvent>;
   deleteSession(sessionId: string): Promise<void>;
 }
 
@@ -41,7 +42,7 @@ async function writeSSEEvents(
   }
 }
 
-function redactSecretOptions(session: SessionResponse, agents: AgentInfo[]): SessionResponse {
+function redactSecretOptions(session: SessionInfo, agents: AgentInfo[]): SessionInfo {
   const { options } = session.agent;
   if (!options) return session;
   const agentInfo = agents.find((a) => a.name === session.agent.name);
@@ -78,12 +79,14 @@ function redactSecretOptions(session: SessionResponse, agents: AgentInfo[]): Ses
 export function aap(handler: Handler): Hono {
   const router = new Hono();
 
-  router.get("/meta", (c) => c.json({ version: 3, ...handler.getMeta() } satisfies MetaResponse));
+  router.get("/meta", (c) =>
+    c.json({ version: 3, ...handler.getMeta() } satisfies GetMetaResponse),
+  );
 
   router.post("/sessions", async (c) => {
     const req = await c.req.json<CreateSessionRequest>();
     const result = await handler.createSession(req);
-    return c.json(result as CreateSessionResponse, 201);
+    return c.json(result as PostSessionsResponse, 201);
   });
 
   router.post("/sessions/:id/turns", async (c) => {
@@ -92,7 +95,7 @@ export function aap(handler: Handler): Hono {
     if (req.stream === "delta" || req.stream === "message") {
       return streamSSE(c, (stream) => writeSSEEvents(stream, result as AsyncIterable<SSEEvent>));
     }
-    return c.json(result as AgentResponse);
+    return c.json(result as PostSessionTurnResponse);
   });
 
   router.get("/sessions/:id", async (c) => {

@@ -1,0 +1,38 @@
+import type { ContentBlock } from "./content.js";
+import type { ToolResult } from "./tools.js";
+
+/** A system-role message providing instructions to the agent. */
+export interface SystemMessage {
+  role: "system";
+  content: string;
+}
+
+/** A user-role message. */
+export interface UserMessage {
+  role: "user";
+  content: string | ContentBlock[];
+}
+
+/** An assistant-role message. */
+export interface AssistantMessage {
+  role: "assistant";
+  content: string | ContentBlock[];
+}
+
+/** A tool result message returned by the application after a `tool_use` block. */
+export interface ToolMessage extends ToolResult {
+  role: "tool";
+}
+
+/** A message that can appear in conversation history. */
+export type HistoryMessage = SystemMessage | UserMessage | AssistantMessage | ToolMessage;
+
+/** Grants or denies permission for the server to invoke a tool on the client's behalf. */
+export interface ToolPermissionMessage {
+  role: "tool_permission";
+  toolCallId: string;
+  /** Whether the client grants permission for the tool call. */
+  granted: boolean;
+  /** Optional explanation, especially useful when `granted` is `false`. */
+  reason?: string;
+}

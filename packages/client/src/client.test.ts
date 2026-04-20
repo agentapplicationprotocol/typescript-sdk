@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Client, ClientError } from "./client";
 import type {
-  AgentResponse,
-  CreateSessionResponse,
-  MetaResponse,
-  SessionListResponse,
-  SessionResponse,
+  PostSessionTurnResponse,
+  PostSessionsResponse,
+  GetMetaResponse,
+  GetSessionsResponse,
+  SessionInfo,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
 
@@ -52,27 +52,27 @@ beforeEach(() => {
 describe("Client", () => {
   it("strips trailing slash from baseUrl", () => {
     const c = new Client({ baseUrl: BASE_URL + "/", apiKey: API_KEY });
-    const fetch = mockFetch({ version: 3, agents: [] } satisfies MetaResponse);
+    const fetch = mockFetch({ version: 3, agents: [] } satisfies GetMetaResponse);
     vi.stubGlobal("fetch", fetch);
     c.getMeta();
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/meta`);
   });
 
   it("sends Authorization header", async () => {
-    const fetch = mockFetch({ version: 3, agents: [] } satisfies MetaResponse);
+    const fetch = mockFetch({ version: 3, agents: [] } satisfies GetMetaResponse);
     vi.stubGlobal("fetch", fetch);
     await client.getMeta();
     expect(fetch.mock.calls[0][1].headers["Authorization"]).toBe(`Bearer ${API_KEY}`);
   });
 
   it("getMeta: GET /meta", async () => {
-    const meta: MetaResponse = { version: 3, agents: [] };
+    const meta: GetMetaResponse = { version: 3, agents: [] };
     vi.stubGlobal("fetch", mockFetch(meta));
     expect(await client.getMeta()).toEqual(meta);
   });
 
   it("getSession: GET /sessions/:id", async () => {
-    const session: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
+    const session: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
     vi.stubGlobal("fetch", mockFetch(session));
     expect(await client.getSession("s1")).toEqual(session);
   });
@@ -92,7 +92,7 @@ describe("Client", () => {
   });
 
   it("listSessions: GET /sessions without cursor", async () => {
-    const res: SessionListResponse = { sessions: [{ sessionId: "s1", agent: { name: "a" } }] };
+    const res: GetSessionsResponse = { sessions: [{ sessionId: "s1", agent: { name: "a" } }] };
     const fetch = mockFetch(res);
     vi.stubGlobal("fetch", fetch);
     await client.listSessions();
@@ -100,15 +100,15 @@ describe("Client", () => {
   });
 
   it("listSessions: appends after param", async () => {
-    const fetch = mockFetch({ sessions: [] } satisfies SessionListResponse);
+    const fetch = mockFetch({ sessions: [] } satisfies GetSessionsResponse);
     vi.stubGlobal("fetch", fetch);
     await client.listSessions({ after: "cursor1" });
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions?after=cursor1`);
   });
 
   it("listAllSessions: paginates until no next", async () => {
-    const s1: SessionResponse = { sessionId: "s1", agent: { name: "a" } };
-    const s2: SessionResponse = { sessionId: "s2", agent: { name: "a" } };
+    const s1: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
+    const s2: SessionInfo = { sessionId: "s2", agent: { name: "a" } };
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
@@ -132,14 +132,14 @@ describe("Client", () => {
   });
 
   it("createSession: POST /sessions returns sessionId", async () => {
-    const res: CreateSessionResponse = { sessionId: "s1" };
+    const res: PostSessionsResponse = { sessionId: "s1" };
     vi.stubGlobal("fetch", mockFetch(res, 201));
     const result = await client.createSession({ agent: { name: "a" } });
     expect(result).toEqual(res);
   });
 
-  it("sendTurn: non-streaming returns AgentResponse", async () => {
-    const res: AgentResponse = { stopReason: "end_turn", messages: [] };
+  it("sendTurn: non-streaming returns PostSessionTurnResponse", async () => {
+    const res: PostSessionTurnResponse = { stopReason: "end_turn", messages: [] };
     vi.stubGlobal("fetch", mockFetch(res));
     const result = await client.sendTurn("s1", { messages: [{ role: "user", content: "hi" }] });
     expect(result).toEqual(res);

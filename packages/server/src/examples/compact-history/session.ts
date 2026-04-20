@@ -1,4 +1,8 @@
-import type { AgentResponse, DeltaSSEEvent, HistoryMessage } from "@agentapplicationprotocol/core";
+import type {
+  PostSessionTurnResponse,
+  DeltaSSEEvent,
+  HistoryMessage,
+} from "@agentapplicationprotocol/core";
 import { Session } from "../../session.js";
 
 /** In-memory session store. */
@@ -37,7 +41,7 @@ export class TruncatedHistorySession extends Session {
   }
 
   /** Calls the model, then compacts history. */
-  protected async call(messages: HistoryMessage[]): Promise<AgentResponse> {
+  protected async call(messages: HistoryMessage[]): Promise<PostSessionTurnResponse> {
     const before = this.history.length;
     const res = await super.call(messages);
     this.syncAndCompact(before);

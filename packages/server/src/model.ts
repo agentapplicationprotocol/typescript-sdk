@@ -1,7 +1,7 @@
 import {
   HistoryMessage,
   ToolSpec,
-  AgentResponse,
+  PostSessionTurnResponse,
   sseEventsToMessagesAsync,
   DeltaSSEEvent,
   StopReason,
@@ -28,8 +28,8 @@ export abstract class ModelProvider {
   /** Calls the LLM in streaming mode and yields SSE events as they arrive. */
   abstract stream(history: HistoryMessage[], tools: ToolSpec[]): AsyncIterable<DeltaSSEEvent>;
 
-  /** Calls the LLM in non-streaming mode and returns a complete AgentResponse. Falls back to streaming if not overridden. */
-  async call(history: HistoryMessage[], tools: ToolSpec[]): Promise<AgentResponse> {
+  /** Calls the LLM in non-streaming mode and returns a complete PostSessionTurnResponse. Falls back to streaming if not overridden. */
+  async call(history: HistoryMessage[], tools: ToolSpec[]): Promise<PostSessionTurnResponse> {
     const [messages, stopReason] = await sseEventsToMessagesAsync(this.stream(history, tools));
     return { messages, stopReason };
   }
@@ -217,7 +217,7 @@ export class AiModelProvider extends ModelProvider {
     }
   }
 
-  async call(history: HistoryMessage[], tools: ToolSpec[]): Promise<AgentResponse> {
+  async call(history: HistoryMessage[], tools: ToolSpec[]): Promise<PostSessionTurnResponse> {
     const res = await generateText({
       model: this.model,
       tools: toAiToolSet(tools),

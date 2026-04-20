@@ -4,7 +4,7 @@ import { Agent } from "./agent";
 import { ModelProvider } from "./model";
 import type {
   AgentConfig,
-  AgentResponse,
+  PostSessionTurnResponse,
   DeltaSSEEvent,
   HistoryMessage,
   SSEEvent,
@@ -20,7 +20,7 @@ function makeModel(overrides: Partial<ModelProvider> = {}): ModelProvider {
     call: vi.fn().mockResolvedValue({
       stopReason: "end_turn",
       messages: [{ role: "assistant", content: "hi" }],
-    } satisfies AgentResponse),
+    } satisfies PostSessionTurnResponse),
     ...overrides,
   } as unknown as ModelProvider;
 }
@@ -66,7 +66,7 @@ describe("Session", () => {
   describe("runTurn (none mode)", () => {
     it("calls model and accumulates history", async () => {
       const s = makeSession();
-      const res = (await s.runTurn({ messages: [userMsg] })) as AgentResponse;
+      const res = (await s.runTurn({ messages: [userMsg] })) as PostSessionTurnResponse;
       expect(res).toEqual({
         stopReason: "end_turn",
         messages: [{ role: "assistant", content: "hi" }],
@@ -101,7 +101,7 @@ describe("Session", () => {
           }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const res = await (s.runTurn({ messages: [userMsg] }) as Promise<AgentResponse>);
+      const res = await (s.runTurn({ messages: [userMsg] }) as Promise<PostSessionTurnResponse>);
       expect(res.stopReason).toBe("end_turn");
       expect(model.call).toHaveBeenCalledTimes(2);
     });
@@ -124,7 +124,7 @@ describe("Session", () => {
         }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const res = (await s.runTurn({ messages: [userMsg] })) as AgentResponse;
+      const res = (await s.runTurn({ messages: [userMsg] })) as PostSessionTurnResponse;
       expect(res.stopReason).toBe("tool_use");
       expect(model.call).toHaveBeenCalledTimes(1);
     });
@@ -417,7 +417,7 @@ describe("Session", () => {
         [],
         [{ role: "assistant", content: "hello" }],
       );
-      const res = (await s2.runTurn({ messages: [userMsg] })) as AgentResponse;
+      const res = (await s2.runTurn({ messages: [userMsg] })) as PostSessionTurnResponse;
       expect(res.stopReason).toBe("end_turn");
     });
   });

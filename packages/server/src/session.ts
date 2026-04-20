@@ -5,12 +5,12 @@ import {
   ToolSpec,
   SSEEvent,
   sseEventsToMessages,
-  AgentResponse,
+  PostSessionTurnResponse,
   StopReason,
   SessionTurnRequest,
   StreamMode,
   ContentBlock,
-  SessionResponse,
+  SessionInfo,
   DeltaSSEEvent,
   MessageSSEEvent,
 } from "@agentapplicationprotocol/core";
@@ -121,7 +121,7 @@ export class Session {
    *
    * Override to customize history sent to the model, e.g. compaction or summarization.
    */
-  protected async call(messages: HistoryMessage[]): Promise<AgentResponse> {
+  protected async call(messages: HistoryMessage[]): Promise<PostSessionTurnResponse> {
     const history = [...this.history, ...messages];
     const res = await this.model.call(history, this.enabledToolSpecs());
     this.history.push(...messages, ...res.messages);
@@ -242,10 +242,10 @@ export class Session {
   }
 
   /**
-   * Runs a single agent turn without streaming, returning a complete `AgentResponse`.
+   * Runs a single agent turn without streaming, returning a complete `PostSessionTurnResponse`.
    * Loops the LLM call as long as all tool calls are trusted and executed inline.
    */
-  private async runTurnNone(messages: TurnMessages): Promise<AgentResponse> {
+  private async runTurnNone(messages: TurnMessages): Promise<PostSessionTurnResponse> {
     const incoming = await this.resolvePermissions(messages);
     const trusted = this.trustedTools();
     const newMessages: HistoryMessage[] = [];
@@ -293,14 +293,14 @@ export class Session {
   private dispatchTurn(
     stream: StreamMode | undefined,
     messages: TurnMessages,
-  ): AsyncIterable<SSEEvent> | Promise<AgentResponse> {
+  ): AsyncIterable<SSEEvent> | Promise<PostSessionTurnResponse> {
     if (stream === "delta") return this.runTurnDelta(messages);
     if (stream === "message") return this.runTurnMessage(messages);
     return this.runTurnNone(messages);
   }
 
   /** Dispatches to the appropriate turn runner based on `stream` mode. Applies optional config overrides that persist for the session lifetime. */
-  runTurn(req: SessionTurnRequest): AsyncIterable<SSEEvent> | Promise<AgentResponse> {
+  runTurn(req: SessionTurnRequest): AsyncIterable<SSEEvent> | Promise<PostSessionTurnResponse> {
     this.applySessionOverrides(req);
     return this.dispatchTurn(req.stream, req.messages);
   }
@@ -319,7 +319,7 @@ export class Session {
   }
 
   /** Serializes the session state for a `GET /session/:id` response. History is not included. */
-  toSessionResponse(): SessionResponse {
+  toSessionResponse(): SessionInfo {
     return {
       sessionId: this.sessionId,
       agent: this.agentConfig,

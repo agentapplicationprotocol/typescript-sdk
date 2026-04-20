@@ -10,7 +10,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { TruncatedHistorySession, sessions } from "./session.js";
 import type {
   CreateSessionRequest,
-  CreateSessionResponse,
+  PostSessionsResponse,
   HistoryType,
   SessionTurnRequest,
 } from "@agentapplicationprotocol/core";
@@ -67,7 +67,7 @@ const handler: Handler = {
     return { agents: [agent.info] };
   },
 
-  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse> {
+  createSession(req: CreateSessionRequest): Promise<PostSessionsResponse> {
     const sessionId = `sess_${randomUUID()}`;
     // Build the model from client-supplied options
     const openai = createOpenAI({
