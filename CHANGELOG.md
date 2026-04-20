@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **core**: New `ToolCall` interface (plain tool call payload: `toolCallId`, `name`, `input`) — previously named `ToolCallEvent`
 - **core**: New `ToolResult` interface (`toolCallId`, `content`) shared by `ToolMessage` and `ToolResultEvent`
 - **core**: New `SessionInfo` interface — the session data shape used in `GetSessionResponse` and `GetSessionsResponse.sessions`
+- **core**: New `AgentCapabilities` interface extracted from `AgentInfo.capabilities`
 
 ### Changed
 
+- **core**: `AgentCapabilities.history` is now `Partial<Record<HistoryType, ...>>` and `AgentCapabilities.stream` is now `Partial<Record<StreamMode, ...>>`
 - **core**: `ToolCallEvent` renamed to `ToolCall`; `ToolCallSSEEvent` renamed to `ToolCallEvent` (now extends `ToolCall`)
 - **core**: `ToolCallResult` renamed to `ToolResult`
 - **core**: Response types renamed to match endpoint conventions:
