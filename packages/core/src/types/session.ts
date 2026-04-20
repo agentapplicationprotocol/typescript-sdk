@@ -1,8 +1,6 @@
 import type { AgentConfig } from "./agent.js";
 import type { ToolSpec } from "./tools.js";
 
-// --- Session ---
-
 export type StreamMode = "delta" | "message" | "none";
 export type StopReason = "end_turn" | "tool_use" | "max_tokens" | "refusal" | "error";
 

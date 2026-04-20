@@ -8,8 +8,6 @@ import type { AgentConfig } from "./agent.js";
 import type { StreamMode } from "./session.js";
 import type { ToolSpec } from "./tools.js";
 
-// --- Requests ---
-
 /** Request body for `POST /sessions`. */
 export interface PostSessionsRequest {
   /** Agent configuration. `name` is required at session creation. */

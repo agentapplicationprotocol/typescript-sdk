@@ -1,8 +1,6 @@
 import type { AgentOption } from "./options.js";
 import type { ServerToolRef, ToolSpec } from "./tools.js";
 
-// --- Agent ---
-
 /** History type for `GET /sessions/:id/history`. */
 export type HistoryType = "compacted" | "full";
 
