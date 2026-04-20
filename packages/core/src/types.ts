@@ -1,7 +1,6 @@
 export * from "./types/content.js";
 export * from "./types/messages.js";
 export * from "./types/tools.js";
-export * from "./types/options.js";
 export * from "./types/agent.js";
 export * from "./types/session.js";
 export * from "./types/requests.js";

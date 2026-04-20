@@ -2,7 +2,7 @@ import type { AgentInfo, HistoryType } from "./agent.js";
 import type { HistoryMessage } from "./messages.js";
 import type { SessionInfo, StopReason } from "./session.js";
 
-// --- Responses ---/** JSON response body for non-streaming (`stream: "none"`) requests. */
+/** JSON response body for non-streaming (`stream: "none"`) requests. */
 export interface PostSessionTurnResponse {
   stopReason: StopReason;
   messages: HistoryMessage[];
