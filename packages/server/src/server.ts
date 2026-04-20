@@ -19,15 +19,22 @@ import {
 // --- Handler interface ---
 
 export interface Handler {
+  /** Returns server metadata and agent list for `GET /meta`. */
   getMeta(): Omit<GetMetaResponse, "version">;
+  /** Returns a paginated list of sessions for `GET /sessions`. */
   getSessions(params: { after?: string }): Promise<GetSessionsResponse>;
+  /** Returns the session, or `undefined` if not found — the router will respond with 404. */
   getSession(sessionId: string): Promise<GetSessionResponse | undefined>;
+  /** Returns the session history, or `undefined` if the session does not exist or the history type is not supported — the router will respond with 404. */
   getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
+  /** Creates a new session and returns its ID for `POST /sessions`. */
   postSessions(req: PostSessionsRequest): Promise<PostSessionsResponse>;
+  /** Runs an agent turn and returns a response or SSE stream for `POST /sessions/:id/turns`. */
   postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest,
   ): Promise<PostSessionTurnResponse> | AsyncIterable<SSEEvent>;
+  /** Deletes a session for `DELETE /sessions/:id`. */
   deleteSession(sessionId: string): Promise<void>;
 }
 
@@ -110,7 +117,7 @@ export function aap(handler: Handler): Hono {
     if (typeParam !== "compacted" && typeParam !== "full")
       return c.json({ error: 'type must be "compacted" or "full"' }, 400);
     const messages = await handler.getSessionHistory(c.req.param("id"), typeParam);
-    if (!messages) return c.json({ error: "Session not found" }, 404);
+    if (!messages) return c.json({ error: "Specified history not found" }, 404);
     return c.json({ history: { [typeParam]: messages } });
   });
 
