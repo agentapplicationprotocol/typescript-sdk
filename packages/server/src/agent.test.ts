@@ -26,6 +26,25 @@ describe("Agent", () => {
     expect(agent.info.options![0].name).toBe("model");
   });
 
+  it("initializes with no capabilities by default", () => {
+    const agent = new Agent("my-agent");
+    expect(agent.info.capabilities).toBeUndefined();
+  });
+
+  it("stream() sets stream capability and returns this", () => {
+    const agent = new Agent("a");
+    const result = agent.stream({ delta: {}, message: {}, none: {} });
+    expect(result).toBe(agent);
+    expect(agent.info.capabilities?.stream).toEqual({ delta: {}, message: {}, none: {} });
+  });
+
+  it("application() sets application capability and returns this", () => {
+    const agent = new Agent("a");
+    const result = agent.application({ tools: {} });
+    expect(result).toBe(agent);
+    expect(agent.info.capabilities?.application).toEqual({ tools: {} });
+  });
+
   it("image() sets image capability and returns this", () => {
     const agent = new Agent("a");
     const result = agent.image({ http: {} });

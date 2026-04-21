@@ -22,6 +22,8 @@ const agent = new Agent("compact-history-agent", {
   description:
     "An AAP-compatible agent with sliding-window history compaction, powered by Vercel AI SDK.",
 })
+  .stream({ delta: {}, message: {}, none: {} })
+  .application({ tools: {} })
   .image({ http: {}, data: {} })
   .history({ compacted: {}, full: {} })
   .option({

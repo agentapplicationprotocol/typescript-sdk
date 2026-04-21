@@ -1,4 +1,9 @@
-import { AgentInfo, AgentOption, JSONSchema } from "@agentapplicationprotocol/core";
+import {
+  AgentCapabilities,
+  AgentInfo,
+  AgentOption,
+  JSONSchema,
+} from "@agentapplicationprotocol/core";
 import z from "zod";
 
 /** Defines an AAP agent: its metadata, capabilities, options, and tools. Use the fluent builder methods to configure, then pass to `Session`. */
@@ -15,16 +20,6 @@ export class Agent {
       version: options?.version ?? "1.0.0",
       tools: [],
       options: [],
-      capabilities: {
-        stream: {
-          delta: {},
-          message: {},
-          none: {},
-        },
-        application: {
-          tools: {},
-        },
-      },
     };
   }
 
@@ -35,15 +30,29 @@ export class Agent {
     return this;
   }
 
+  /** Declares supported stream modes. */
+  stream(modes: AgentCapabilities["stream"]): Agent {
+    this.info.capabilities ??= {};
+    this.info.capabilities.stream = modes;
+    return this;
+  }
+
+  /** Declares application-provided input capabilities (e.g. client-side tools). */
+  application(application: AgentCapabilities["application"]): Agent {
+    this.info.capabilities ??= {};
+    this.info.capabilities.application = application;
+    return this;
+  }
+
   /** Declares image input capability. */
-  image(image: NonNullable<AgentInfo["capabilities"]>["image"]): Agent {
+  image(image: AgentCapabilities["image"]): Agent {
     this.info.capabilities ??= {};
     this.info.capabilities.image = image;
     return this;
   }
 
   /** Declares history retrieval capability. */
-  history(history: NonNullable<AgentInfo["capabilities"]>["history"]): Agent {
+  history(history: AgentCapabilities["history"]): Agent {
     this.info.capabilities ??= {};
     this.info.capabilities.history = history;
     return this;

@@ -24,6 +24,8 @@ const agent = new Agent("basic-agent", {
   version: "0.1.0",
   description: "An AAP-compatible agent powered by Vercel AI SDK.",
 })
+  .stream({ delta: {}, message: {}, none: {} })
+  .application({ tools: {} })
   .image({ http: {}, data: {} })
   .history({ compacted: {}, full: {} })
   .option({
