@@ -1,8 +1,8 @@
-import type { ContentBlock, HistoryMessage, SSEEvent, StopReason } from "./types";
+import type { AgentMessage, ContentBlock, SSEEvent, StopReason } from "./types";
 
 function processEvent(
   event: SSEEvent,
-  history: HistoryMessage[],
+  history: AgentMessage[],
   blocks: ContentBlock[],
   acc: { text: string; thinking: string; stopReason: StopReason },
 ) {
@@ -64,8 +64,8 @@ function processEvent(
  * Converts a list of SSE events into `HistoryMessage[]`.
  * Handles delta accumulation, tool call/result pairing, and assistant message finalization.
  */
-export function sseEventsToMessages(events: SSEEvent[]): [HistoryMessage[], StopReason] {
-  const history: HistoryMessage[] = [];
+export function sseEventsToMessages(events: SSEEvent[]): [AgentMessage[], StopReason] {
+  const history: AgentMessage[] = [];
   const blocks: ContentBlock[] = [];
   const acc = { text: "", thinking: "", stopReason: "error" as StopReason };
 
@@ -82,8 +82,8 @@ export function sseEventsToMessages(events: SSEEvent[]): [HistoryMessage[], Stop
  */
 export async function sseEventsToMessagesAsync(
   events: AsyncIterable<SSEEvent>,
-): Promise<[HistoryMessage[], StopReason]> {
-  const history: HistoryMessage[] = [];
+): Promise<[AgentMessage[], StopReason]> {
+  const history: AgentMessage[] = [];
   const blocks: ContentBlock[] = [];
   const acc = { text: "", thinking: "", stopReason: "error" as StopReason };
 

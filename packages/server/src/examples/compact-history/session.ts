@@ -3,7 +3,7 @@ import type {
   DeltaSSEEvent,
   HistoryMessage,
 } from "@agentapplicationprotocol/core";
-import { Session } from "../../session.js";
+import { Session, StepIncomingMessage } from "../../session.js";
 
 /** In-memory session store. */
 export const sessions = new Map<string, TruncatedHistorySession>();
@@ -34,14 +34,14 @@ export class TruncatedHistorySession extends Session {
   }
 
   /** Streams the model response, then compacts history. */
-  protected async *stream(messages: HistoryMessage[]): AsyncIterable<DeltaSSEEvent> {
+  protected async *stream(messages: StepIncomingMessage[]): AsyncIterable<DeltaSSEEvent> {
     const before = this.history.length;
     for await (const e of super.stream(messages)) yield e;
     this.syncAndCompact(before);
   }
 
   /** Calls the model, then compacts history. */
-  protected async call(messages: HistoryMessage[]): Promise<PostSessionTurnResponse> {
+  protected async call(messages: StepIncomingMessage[]): Promise<PostSessionTurnResponse> {
     const before = this.history.length;
     const res = await super.call(messages);
     this.syncAndCompact(before);

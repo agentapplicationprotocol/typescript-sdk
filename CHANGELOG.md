@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **core**: New `AgentMessage = AssistantMessage | ToolMessage` and `ApplicationMessage = UserMessage | ToolMessage | ToolPermissionMessage` union types
 - **core**: New `HistoryType = "compacted" | "full"` type; `GetSessionHistoryResponse.history` is now typed as `Partial<Record<HistoryType, HistoryMessage[]>>`
 - **core**: New `ToolCallInput = Record<string, unknown>` type used in `ToolUseContentBlock.input` and `ToolCall.input`
 - **core**: New `ToolCall` interface (plain tool call payload: `toolCallId`, `name`, `input`) — previously named `ToolCallEvent`
@@ -20,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **server**: `Agent` no longer enables any capabilities by default; use the new `.stream()` and `.application()` builder methods to opt in explicitly
+- **core**: `PostSessionTurnResponse.messages` narrowed from `HistoryMessage[]` to `AgentMessage[]`
+- **core**: `PostSessionTurnRequest.messages` narrowed from `(UserMessage | ToolMessage | ToolPermissionMessage)[]` to `ApplicationMessage[]`
+- **core**: `sseEventsToMessages` and `sseEventsToMessagesAsync` return `[AgentMessage[], StopReason]` instead of `[HistoryMessage[], StopReason]`
+- **server**: `fromAiMessages` overloaded — accepts `(AssistantModelMessage | ToolModelMessage)[]` and returns `AgentMessage[]`
 - **core**: `AgentCapabilities.history` is now `Partial<Record<HistoryType, ...>>` and `AgentCapabilities.stream` is now `Partial<Record<StreamMode, ...>>`
 - **core**: `ToolCallEvent` renamed to `ToolCall`; `ToolCallSSEEvent` renamed to `ToolCallEvent` (now extends `ToolCall`)
 - **core**: `ToolCallResult` renamed to `ToolResult`

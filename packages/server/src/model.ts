@@ -1,4 +1,5 @@
 import {
+  AgentMessage,
   HistoryMessage,
   ToolSpec,
   PostSessionTurnResponse,
@@ -8,6 +9,7 @@ import {
   ContentBlock,
 } from "@agentapplicationprotocol/core";
 import {
+  AssistantModelMessage,
   FinishReason,
   generateText,
   jsonSchema,
@@ -16,6 +18,7 @@ import {
   streamText,
   TextStreamPart,
   tool,
+  ToolModelMessage,
   ToolSet,
 } from "ai";
 
@@ -138,6 +141,10 @@ export function fromAiStreamPart(part: TextStreamPart<ToolSet>): DeltaSSEEvent |
 }
 
 /** Converts AI SDK `ModelMessage[]` to AAP `HistoryMessage[]`. */
+export function fromAiMessages(
+  messages: (AssistantModelMessage | ToolModelMessage)[],
+): AgentMessage[];
+export function fromAiMessages(messages: ModelMessage[]): HistoryMessage[];
 export function fromAiMessages(messages: ModelMessage[]): HistoryMessage[] {
   return messages.flatMap((m): HistoryMessage[] => {
     if (m.role === "system") return [{ role: "system", content: m.content }];

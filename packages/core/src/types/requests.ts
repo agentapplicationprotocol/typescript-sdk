@@ -1,9 +1,4 @@
-import type {
-  HistoryMessage,
-  ToolMessage,
-  ToolPermissionMessage,
-  UserMessage,
-} from "./messages.js";
+import type { ApplicationMessage, HistoryMessage } from "./messages.js";
 import type { AgentConfig } from "./agent.js";
 import type { StreamMode } from "./session.js";
 import type { ToolSpec } from "./tools.js";
@@ -25,7 +20,7 @@ export interface PostSessionTurnRequest {
   /** Response mode. Defaults to `"none"`. */
   stream?: StreamMode;
   /** A single user message, or a mixed list of tool results and tool permissions. */
-  messages: (UserMessage | ToolMessage | ToolPermissionMessage)[];
+  messages: ApplicationMessage[];
   /** Client-side tools. Overrides tools declared at session creation. */
   tools?: ToolSpec[];
 }

@@ -1,6 +1,5 @@
 import {
   HistoryMessage,
-  ToolPermissionMessage,
   AgentConfig,
   ToolSpec,
   SSEEvent,
@@ -12,9 +11,15 @@ import {
   SessionInfo,
   DeltaSSEEvent,
   MessageSSEEvent,
+  UserMessage,
+  ToolMessage,
+  ApplicationMessage,
+  AgentMessage,
 } from "@agentapplicationprotocol/core";
 import { ModelProvider } from "./model";
 import { Agent } from "./agent";
+
+export type StepIncomingMessage = UserMessage | ToolMessage | AgentMessage;
 
 /** Manages a stateful conversation session, accumulating history across turns. */
 export class Session {
@@ -45,13 +50,13 @@ export class Session {
 
   /** Resolves tool_permission messages into tool result messages by executing granted tools. */
   private async resolvePermissions(
-    messages: (HistoryMessage | ToolPermissionMessage)[],
-  ): Promise<HistoryMessage[]> {
-    const resolved: HistoryMessage[] = [];
+    messages: ApplicationMessage[],
+  ): Promise<(UserMessage | ToolMessage)[]> {
+    const resolved: (UserMessage | ToolMessage)[] = [];
     for (const m of messages) {
       // pass through regular history messages unchanged
       if (m.role !== "tool_permission") {
-        resolved.push(m as HistoryMessage);
+        resolved.push(m);
         continue;
       }
       // for tool_permission, look up the original tool_use block in history to get name + args
@@ -96,7 +101,7 @@ export class Session {
    *
    * Override to customize history sent to the model, e.g. compaction or summarization.
    */
-  protected async *stream(messages: HistoryMessage[]): AsyncIterable<DeltaSSEEvent> {
+  protected async *stream(messages: StepIncomingMessage[]): AsyncIterable<DeltaSSEEvent> {
     const history = [...this.history, ...messages];
     const events: SSEEvent[] = [];
     try {
@@ -119,10 +124,10 @@ export class Session {
    *
    * Override to customize history sent to the model, e.g. compaction or summarization.
    */
-  protected async call(messages: HistoryMessage[]): Promise<PostSessionTurnResponse> {
-    const history = [...this.history, ...messages];
+  protected async call(incoming: StepIncomingMessage[]): Promise<PostSessionTurnResponse> {
+    const history = [...this.history, ...incoming];
     const res = await this.model.call(history, this.enabledToolSpecs());
-    this.history.push(...messages, ...res.messages);
+    this.history.push(...incoming, ...res.messages);
     return res;
   }
 
@@ -141,7 +146,7 @@ export class Session {
     yield { event: "turn_start" as const };
 
     let stopReason: StopReason = "end_turn";
-    let next: HistoryMessage[] = incoming;
+    let next: StepIncomingMessage[] = incoming;
 
     while (true) {
       // stream the LLM response chunk by chunk, forwarding events to the caller
@@ -192,7 +197,7 @@ export class Session {
     yield { event: "turn_start" as const };
 
     let stopReason: StopReason = "end_turn";
-    let next: HistoryMessage[] = incoming;
+    let next: StepIncomingMessage[] = incoming;
 
     while (true) {
       // call the LLM non-streaming, then emit events from the response messages
@@ -252,8 +257,8 @@ export class Session {
     const messages = req.messages;
     const incoming = await this.resolvePermissions(messages);
     const trusted = this.trustedTools();
-    const newMessages: HistoryMessage[] = [];
-    let next: HistoryMessage[] = incoming;
+    const newMessages: AgentMessage[] = [];
+    let next: StepIncomingMessage[] = incoming;
 
     while (true) {
       // call the LLM with the next batch of messages
@@ -275,7 +280,7 @@ export class Session {
         const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
         next.push({ role: "tool", toolCallId: b.toolCallId, content });
       }
-      newMessages.push(...next);
+      newMessages.push(...(next as ToolMessage[]));
     }
   }
 
