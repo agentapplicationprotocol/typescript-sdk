@@ -307,7 +307,7 @@ export class Session {
   }
 
   /** Serializes the session state for a `GET /session/:id` response. History is not included. */
-  toSessionResponse(): SessionInfo {
+  toSessionInfo(): SessionInfo {
     return {
       sessionId: this.sessionId,
       agent: this.agentConfig,

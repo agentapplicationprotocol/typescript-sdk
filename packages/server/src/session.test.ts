@@ -58,7 +58,7 @@ describe("Session", () => {
 
   it("toSessionResponse returns sessionId and agentConfig", () => {
     const s = makeSession({ name: "test-agent", options: { model: "gpt-4" } });
-    expect(s.toSessionResponse()).toEqual({
+    expect(s.toSessionInfo()).toEqual({
       sessionId: "sess-1",
       agent: { name: "test-agent", options: { model: "gpt-4" } },
     });
@@ -67,13 +67,15 @@ describe("Session", () => {
   it("toSessionResponse includes tools when clientTools is set", () => {
     const s = makeSession();
     s.clientTools = [{ name: "t", description: "", parameters: {} }];
-    expect(s.toSessionResponse().tools).toHaveLength(1);
+    expect(s.toSessionInfo().tools).toHaveLength(1);
   });
 
   describe("runTurn (none mode)", () => {
     it("calls model and accumulates history", async () => {
       const s = makeSession();
-      const res = (await runTurn(s, { messages: [userMsg] })) as PostSessionTurnResponse;
+      const res = (await runTurn(s, {
+        messages: [userMsg],
+      })) as PostSessionTurnResponse;
       expect(res).toEqual({
         stopReason: "end_turn",
         messages: [{ role: "assistant", content: "hi" }],
@@ -97,7 +99,12 @@ describe("Session", () => {
               {
                 role: "assistant",
                 content: [
-                  { type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hi" } },
+                  {
+                    type: "tool_use",
+                    toolCallId: "c1",
+                    name: "echo",
+                    input: { msg: "hi" },
+                  },
                 ],
               },
             ],
@@ -108,7 +115,9 @@ describe("Session", () => {
           }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const res = await (runTurn(s, { messages: [userMsg] }) as Promise<PostSessionTurnResponse>);
+      const res = await (runTurn(s, {
+        messages: [userMsg],
+      }) as Promise<PostSessionTurnResponse>);
       expect(res.stopReason).toBe("end_turn");
       expect(model.call).toHaveBeenCalledTimes(2);
     });
@@ -125,13 +134,22 @@ describe("Session", () => {
           messages: [
             {
               role: "assistant",
-              content: [{ type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hi" } }],
+              content: [
+                {
+                  type: "tool_use",
+                  toolCallId: "c1",
+                  name: "echo",
+                  input: { msg: "hi" },
+                },
+              ],
             },
           ],
         }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const res = (await runTurn(s, { messages: [userMsg] })) as PostSessionTurnResponse;
+      const res = (await runTurn(s, {
+        messages: [userMsg],
+      })) as PostSessionTurnResponse;
       expect(res.stopReason).toBe("tool_use");
       expect(model.call).toHaveBeenCalledTimes(1);
     });
@@ -181,11 +199,17 @@ describe("Session", () => {
               name: "echo",
               input: { msg: "hi" },
             };
-            yield { event: "turn_stop" as const, stopReason: "tool_use" as const };
+            yield {
+              event: "turn_stop" as const,
+              stopReason: "tool_use" as const,
+            };
           })
           .mockImplementationOnce(async function* () {
             yield { event: "text_delta" as const, delta: "done" };
-            yield { event: "turn_stop" as const, stopReason: "end_turn" as const };
+            yield {
+              event: "turn_stop" as const,
+              stopReason: "end_turn" as const,
+            };
           }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
@@ -216,7 +240,12 @@ describe("Session", () => {
       const model = makeModel({
         call: vi.fn().mockResolvedValue({
           stopReason: "end_turn",
-          messages: [{ role: "assistant", content: [{ type: "thinking", thinking: "hmm" }] }],
+          messages: [
+            {
+              role: "assistant",
+              content: [{ type: "thinking", thinking: "hmm" }],
+            },
+          ],
         }),
       });
       const s = makeSession({ name: "test-agent" }, model);
@@ -245,7 +274,12 @@ describe("Session", () => {
               {
                 role: "assistant",
                 content: [
-                  { type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hi" } },
+                  {
+                    type: "tool_use",
+                    toolCallId: "c1",
+                    name: "echo",
+                    input: { msg: "hi" },
+                  },
                 ],
               },
             ],
@@ -279,7 +313,14 @@ describe("Session", () => {
         { role: "user", content: "hi" },
         {
           role: "assistant",
-          content: [{ type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hello" } }],
+          content: [
+            {
+              type: "tool_use",
+              toolCallId: "c1",
+              name: "echo",
+              input: { msg: "hello" },
+            },
+          ],
         },
       ];
       await runTurn(s, {
@@ -299,11 +340,25 @@ describe("Session", () => {
       s.history = [
         {
           role: "assistant",
-          content: [{ type: "tool_use", toolCallId: "c2", name: "echo", input: { msg: "x" } }],
+          content: [
+            {
+              type: "tool_use",
+              toolCallId: "c2",
+              name: "echo",
+              input: { msg: "x" },
+            },
+          ],
         },
       ];
       await runTurn(s, {
-        messages: [{ role: "tool_permission", toolCallId: "c2", granted: false, reason: "no" }],
+        messages: [
+          {
+            role: "tool_permission",
+            toolCallId: "c2",
+            granted: false,
+            reason: "no",
+          },
+        ],
       });
       const callArg = (model.call as ReturnType<typeof vi.fn>).mock.calls[0][0] as HistoryMessage[];
       const toolResult = callArg.find((m) => m.role === "tool");
@@ -321,13 +376,22 @@ describe("Session", () => {
 
     it("overrides agentConfig.tools when req.agent.tools is provided", async () => {
       const s = makeSession();
-      await runTurn(s, { messages: [userMsg], agent: { tools: [{ name: "echo", trust: true }] } });
+      await runTurn(s, {
+        messages: [userMsg],
+        agent: { tools: [{ name: "echo", trust: true }] },
+      });
       expect(s.agentConfig.tools).toEqual([{ name: "echo", trust: true }]);
     });
 
     it("overrides agentConfig.options when req.agent.options is provided", async () => {
-      const s = makeSession({ name: "test-agent", options: { model: "gpt-4" } });
-      await runTurn(s, { messages: [userMsg], agent: { options: { model: "gpt-5" } } });
+      const s = makeSession({
+        name: "test-agent",
+        options: { model: "gpt-4" },
+      });
+      await runTurn(s, {
+        messages: [userMsg],
+        agent: { options: { model: "gpt-5" } },
+      });
       expect(s.agentConfig.options).toEqual({ model: "gpt-5" });
     });
   });
@@ -344,7 +408,10 @@ describe("Session", () => {
             name: "echo",
             input: { msg: "hi" },
           };
-          yield { event: "turn_stop" as const, stopReason: "tool_use" as const };
+          yield {
+            event: "turn_stop" as const,
+            stopReason: "tool_use" as const,
+          };
         }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
@@ -367,7 +434,14 @@ describe("Session", () => {
           messages: [
             {
               role: "assistant",
-              content: [{ type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hi" } }],
+              content: [
+                {
+                  type: "tool_use",
+                  toolCallId: "c1",
+                  name: "echo",
+                  input: { msg: "hi" },
+                },
+              ],
             },
           ],
         }),
@@ -391,7 +465,14 @@ describe("Session", () => {
           messages: [
             {
               role: "assistant",
-              content: [{ type: "tool_use", toolCallId: "c1", name: "echo", input: { msg: "hi" } }],
+              content: [
+                {
+                  type: "tool_use",
+                  toolCallId: "c1",
+                  name: "echo",
+                  input: { msg: "hi" },
+                },
+              ],
             },
           ],
         }),
@@ -424,7 +505,9 @@ describe("Session", () => {
         [],
         [{ role: "assistant", content: "hello" }],
       );
-      const res = (await runTurn(s2, { messages: [userMsg] })) as PostSessionTurnResponse;
+      const res = (await runTurn(s2, {
+        messages: [userMsg],
+      })) as PostSessionTurnResponse;
       expect(res.stopReason).toBe("end_turn");
     });
   });

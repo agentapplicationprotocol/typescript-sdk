@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **server**: `Handler` methods renamed to match endpoint conventions: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
 - **server**: `Handler.postSessionTurn` split into three distinct methods: `postSessionTurnStreamNone`, `postSessionTurnStreamDelta` (returns `AsyncIterable<DeltaSSEEvent>`), `postSessionTurnStreamMessage` (returns `AsyncIterable<MessageSSEEvent>`)
 - **server**: `Session.runTurn` removed; replaced by `runTurnNone`, `runTurnDelta`, `runTurnMessage` (each takes a full `PostSessionTurnRequest`)
+- **server**: `Session.toSessionResponse()` renamed to `toSessionInfo()`
 - **client**: Client methods renamed to match: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
 
 ### Removed

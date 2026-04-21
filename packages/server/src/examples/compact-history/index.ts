@@ -107,7 +107,7 @@ const handler: Handler = {
 
   async getSession(sessionId: string) {
     const session = sessions.get(sessionId);
-    return session?.toSessionResponse();
+    return session?.toSessionInfo();
   },
 
   async getSessionHistory(sessionId: string, type: HistoryType) {
@@ -117,7 +117,7 @@ const handler: Handler = {
 
   async getSessions() {
     return {
-      sessions: [...sessions.values()].map((s) => s.toSessionResponse()),
+      sessions: [...sessions.values()].map((s) => s.toSessionInfo()),
     };
   },
 
