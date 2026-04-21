@@ -40,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **server**: `Session.runTurn` removed; replaced by `runTurnNone`, `runTurnDelta`, `runTurnMessage` (each takes a full `PostSessionTurnRequest`)
 - **client**: Client methods renamed to match: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
 
+### Removed
+
+- **server**: `TurnMessages` type; it was an internal implementation detail
+
 ## [0.7.3] - 2026-04-18
 
 ### Added

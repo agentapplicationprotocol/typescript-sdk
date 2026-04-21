@@ -10,5 +10,4 @@ export {
   toAiToolSet,
 } from "./model";
 export { Session } from "./session";
-export type { TurnMessages } from "./session";
 export { Agent } from "./agent";

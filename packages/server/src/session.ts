@@ -16,9 +16,6 @@ import {
 import { ModelProvider } from "./model";
 import { Agent } from "./agent";
 
-/** Messages accepted as input to a turn: regular history messages or client-side tool permission responses. */
-export type TurnMessages = (HistoryMessage | ToolPermissionMessage)[];
-
 /** Manages a stateful conversation session, accumulating history across turns. */
 export class Session {
   sessionId: string;
@@ -47,7 +44,9 @@ export class Session {
   }
 
   /** Resolves tool_permission messages into tool result messages by executing granted tools. */
-  private async resolvePermissions(messages: TurnMessages): Promise<HistoryMessage[]> {
+  private async resolvePermissions(
+    messages: (HistoryMessage | ToolPermissionMessage)[],
+  ): Promise<HistoryMessage[]> {
     const resolved: HistoryMessage[] = [];
     for (const m of messages) {
       // pass through regular history messages unchanged
