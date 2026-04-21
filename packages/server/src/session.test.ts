@@ -13,8 +13,14 @@ import type {
 import z from "zod";
 
 function runTurn(s: Session, req: PostSessionTurnRequest) {
-  if (req.stream === "delta") return s.runTurnDelta(req);
-  if (req.stream === "message") return s.runTurnMessage(req);
+  if (req.stream === "delta") {
+    const events: DeltaSSEEvent[] = [];
+    return s.runTurnDelta(req, (e) => events.push(e)).then(() => events);
+  }
+  if (req.stream === "message") {
+    const events: SSEEvent[] = [];
+    return s.runTurnMessage(req, (e) => events.push(e)).then(() => events);
+  }
   return s.runTurnNone(req);
 }
 
@@ -158,9 +164,10 @@ describe("Session", () => {
   describe("runTurn (delta mode)", () => {
     it("yields turn_start and turn_stop events", async () => {
       const s = makeSession();
-      const result = runTurn(s, { messages: [userMsg], stream: "delta" });
-      const events = [];
-      for await (const e of result as AsyncIterable<DeltaSSEEvent>) events.push(e);
+      const events = (await runTurn(s, {
+        messages: [userMsg],
+        stream: "delta",
+      })) as DeltaSSEEvent[];
       expect(events[0].event).toBe("turn_start");
       expect(events.at(-1)!.event).toBe("turn_stop");
     });
@@ -172,12 +179,10 @@ describe("Session", () => {
         }),
       });
       const s = makeSession({ name: "test-agent" }, model);
-      const events = [];
-      for await (const e of runTurn(s, {
+      const events = (await runTurn(s, {
         messages: [userMsg],
         stream: "delta",
-      }) as AsyncIterable<DeltaSSEEvent>)
-        events.push(e);
+      })) as DeltaSSEEvent[];
       const last = events.at(-1)!;
       expect(last.event).toBe("turn_stop");
       expect((last as any).stopReason).toBe("error");
@@ -213,13 +218,10 @@ describe("Session", () => {
           }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const events = [];
-      for await (const e of runTurn(s, {
+      const events = (await runTurn(s, {
         messages: [userMsg],
         stream: "delta",
-      }) as AsyncIterable<DeltaSSEEvent>) {
-        events.push(e);
-      }
+      })) as DeltaSSEEvent[];
       expect(events.some((e) => e.event === "tool_result")).toBe(true);
       expect(model.stream).toHaveBeenCalledTimes(2);
     });
@@ -228,9 +230,7 @@ describe("Session", () => {
   describe("runTurn (message mode)", () => {
     it("yields turn_start, text, and turn_stop events", async () => {
       const s = makeSession();
-      const result = runTurn(s, { messages: [userMsg], stream: "message" });
-      const events = [];
-      for await (const e of result as AsyncIterable<SSEEvent>) events.push(e);
+      const events = (await runTurn(s, { messages: [userMsg], stream: "message" })) as SSEEvent[];
       expect(events[0].event).toBe("turn_start");
       expect(events.some((e) => e.event === "text")).toBe(true);
       expect(events.at(-1)!.event).toBe("turn_stop");
@@ -249,13 +249,7 @@ describe("Session", () => {
         }),
       });
       const s = makeSession({ name: "test-agent" }, model);
-      const events = [];
-      for await (const e of runTurn(s, {
-        messages: [userMsg],
-        stream: "message",
-      }) as AsyncIterable<SSEEvent>) {
-        events.push(e);
-      }
+      const events = (await runTurn(s, { messages: [userMsg], stream: "message" })) as SSEEvent[];
       expect(events.some((e) => e.event === "thinking")).toBe(true);
     });
 
@@ -290,13 +284,7 @@ describe("Session", () => {
           }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const events = [];
-      for await (const e of runTurn(s, {
-        messages: [userMsg],
-        stream: "message",
-      }) as AsyncIterable<SSEEvent>) {
-        events.push(e);
-      }
+      const events = (await runTurn(s, { messages: [userMsg], stream: "message" })) as SSEEvent[];
       expect(events.some((e) => e.event === "tool_result")).toBe(true);
       expect(model.call).toHaveBeenCalledTimes(2);
     });
@@ -415,12 +403,10 @@ describe("Session", () => {
         }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const events = [];
-      for await (const e of runTurn(s, {
+      const events = (await runTurn(s, {
         messages: [userMsg],
         stream: "delta",
-      }) as AsyncIterable<DeltaSSEEvent>)
-        events.push(e);
+      })) as DeltaSSEEvent[];
       expect(events.at(-1)!.event).toBe("turn_stop");
       expect(model.stream).toHaveBeenCalledTimes(1);
     });
@@ -447,12 +433,7 @@ describe("Session", () => {
         }),
       });
       const s = makeSession({ name: "test-agent" }, model);
-      const events = [];
-      for await (const e of runTurn(s, {
-        messages: [userMsg],
-        stream: "message",
-      }) as AsyncIterable<SSEEvent>)
-        events.push(e);
+      const events = (await runTurn(s, { messages: [userMsg], stream: "message" })) as SSEEvent[];
       expect(events.some((e) => e.event === "tool_call")).toBe(true);
     });
 
@@ -478,12 +459,7 @@ describe("Session", () => {
         }),
       });
       const s = new Session("s", agent, model, agentConfig, [], []);
-      const events = [];
-      for await (const e of runTurn(s, {
-        messages: [userMsg],
-        stream: "message",
-      }) as AsyncIterable<SSEEvent>)
-        events.push(e);
+      const events = (await runTurn(s, { messages: [userMsg], stream: "message" })) as SSEEvent[];
       expect(events.at(-1)!.event).toBe("turn_stop");
       expect(model.call).toHaveBeenCalledTimes(1);
     });

@@ -19,10 +19,15 @@ const agentResponse: PostSessionTurnResponse = { stopReason: "end_turn", message
 const postSessionsResponse = { sessionId: "s1" };
 const sessionList: GetSessionsResponse = { sessions: [session] };
 
-async function* sseEvents(): AsyncIterable<SSEEvent> {
-  yield { event: "turn_start" };
-  yield { event: "text", text: "hi" };
-  yield { event: "turn_stop", stopReason: "end_turn" };
+function makeSseHandler() {
+  return async (onEvent: (e: SSEEvent) => void) => {
+    for (const e of [
+      { event: "turn_start" as const },
+      { event: "text" as const, text: "hi" },
+      { event: "turn_stop" as const, stopReason: "end_turn" as const },
+    ])
+      onEvent(e);
+  };
 }
 
 function makeHandler(overrides: Partial<Handler> = {}): Handler {
@@ -33,8 +38,12 @@ function makeHandler(overrides: Partial<Handler> = {}): Handler {
     getSessionHistory: vi.fn().mockResolvedValue([] satisfies HistoryMessage[]),
     postSessions: vi.fn().mockResolvedValue(postSessionsResponse),
     postSessionTurnStreamNone: vi.fn().mockResolvedValue(agentResponse),
-    postSessionTurnStreamDelta: vi.fn().mockReturnValue(sseEvents()),
-    postSessionTurnStreamMessage: vi.fn().mockReturnValue(sseEvents()),
+    postSessionTurnStreamDelta: vi
+      .fn()
+      .mockImplementation((_id, _req, onEvent) => makeSseHandler()(onEvent)),
+    postSessionTurnStreamMessage: vi
+      .fn()
+      .mockImplementation((_id, _req, onEvent) => makeSseHandler()(onEvent)),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };

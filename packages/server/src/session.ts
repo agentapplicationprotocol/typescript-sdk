@@ -19,7 +19,7 @@ import {
 import { ModelProvider } from "./model";
 import { Agent } from "./agent";
 
-export type StepIncomingMessage = UserMessage | ToolMessage | AgentMessage;
+export type StepIncomingMessage = UserMessage | ToolMessage;
 
 /** Manages a stateful conversation session, accumulating history across turns. */
 export class Session {
@@ -95,157 +95,233 @@ export class Session {
   }
 
   /**
-   * Streams the LLM response for new `messages`.
-   * `messages` are combined with history for the LLM call, but only appended
-   * to history along with the response once streaming is complete.
+   * Runs a single LLM step in delta streaming mode: streams the model response, calls
+   * `onEvent` for each delta event, executes any trusted inline tools, and returns the
+   * generated messages and whether the loop should stop.
    *
-   * Override to customize history sent to the model, e.g. compaction or summarization.
+   * Override to customize step behavior — same patterns as `runStepStreamNone` apply.
    */
-  protected async *stream(incoming: StepIncomingMessage[]): AsyncIterable<DeltaSSEEvent> {
-    const history = [...this.history, ...incoming];
+  protected async runStepStreamDelta(
+    incoming: StepIncomingMessage[],
+    onEvent: (event: DeltaSSEEvent) => void,
+  ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
+    // stream the LLM response with current history + incoming messages
+    const generated: AgentMessage[] = [];
+    let stopReason: StopReason | undefined;
     const events: SSEEvent[] = [];
     try {
-      for await (const e of this.model.stream(history, this.enabledToolSpecs())) {
+      for await (const e of this.model.stream(
+        [...this.history, ...incoming],
+        this.enabledToolSpecs(),
+      )) {
         events.push(e);
-        yield e;
+        // suppress turn_stop — runTurnDelta emits its own final turn_stop
+        if (e.event !== "turn_stop") onEvent(e);
+        else stopReason = e.stopReason;
       }
-    } catch (err) {
-      yield { event: "turn_stop", stopReason: "error" };
-      return;
+    } catch {
+      this.history.push(...incoming);
+      onEvent({ event: "turn_stop", stopReason: "error" });
+      return { generated, stopReason: "error" };
     }
     const [resMessages] = sseEventsToMessages(events);
-    this.history.push(...incoming, ...resMessages);
+    generated.push(...resMessages);
+
+    if (stopReason === "tool_use") {
+      const trusted = this.trustedTools();
+      const toolUses = resMessages.flatMap((m) =>
+        m.role === "assistant" && Array.isArray(m.content)
+          ? m.content.filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
+          : [],
+      );
+      const hasUntrusted = toolUses.some((b) => !trusted.has(b.name));
+
+      // execute trusted tools inline and emit tool_result events as they complete
+      for (const b of toolUses.filter((b) => trusted.has(b.name))) {
+        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
+        const toolMsg: ToolMessage = { role: "tool", toolCallId: b.toolCallId, content };
+        generated.push(toolMsg);
+        onEvent({ event: "tool_result" as const, toolCallId: b.toolCallId, content });
+      }
+
+      // stop only if there are untrusted tools requiring client permission
+      stopReason = hasUntrusted ? stopReason : undefined;
+    }
+
+    // atomically append incoming + all generated messages (including inline tool results) to history
+    this.history.push(...incoming, ...generated);
+    return { generated, stopReason };
   }
 
   /**
-   * Calls the LLM with new `messages`.
-   * `messages` are combined with history for the LLM call, but only appended
-   * to history along with the response once the call is complete.
-   *
-   * Override to customize history sent to the model, e.g. compaction or summarization.
-   */
-  protected async call(incoming: StepIncomingMessage[]): Promise<PostSessionTurnResponse> {
-    const history = [...this.history, ...incoming];
-    const res = await this.model.call(history, this.enabledToolSpecs());
-    this.history.push(...incoming, ...res.messages);
-    return res;
-  }
-
-  /**
-   * Runs a single agent turn in delta streaming mode, yielding SSE events chunk by chunk.
+   * Runs a single agent turn in delta streaming mode, calling `onEvent` for each SSE event.
    * Resolves permissions, then loops: streams the model, executes any trusted
    * server tools inline, and repeats until a non-tool-use stop or an untrusted
    * tool is encountered.
    */
-  async *runTurnDelta(req: PostSessionTurnRequest): AsyncIterable<DeltaSSEEvent> {
+  async runTurnDelta(
+    req: PostSessionTurnRequest,
+    onEvent: (event: DeltaSSEEvent) => void,
+  ): Promise<void> {
     this.applySessionOverrides(req);
-    const messages = req.messages;
-    const incoming = await this.resolvePermissions(messages);
-    const trusted = this.trustedTools();
+    const incoming = await this.resolvePermissions(req.messages);
 
-    yield { event: "turn_start" as const };
+    onEvent({ event: "turn_start" as const });
 
-    let stopReason: StopReason = "end_turn";
     let next: StepIncomingMessage[] = incoming;
 
     while (true) {
-      // stream the LLM response chunk by chunk, forwarding events to the caller
-      // suppress turn_stop from stream() — runTurnDelta emits its own final turn_stop
-      for await (const e of this.stream(next)) {
-        if (e.event === "turn_stop") {
-          stopReason = e.stopReason;
-          continue;
-        }
-        yield e;
+      const { generated, stopReason } = await this.runStepStreamDelta(next, onEvent);
+      if (stopReason !== undefined) {
+        onEvent({ event: "turn_stop" as const, stopReason });
+        break;
       }
-
-      // non-tool stop: we're done
-      if (stopReason !== "tool_use") break;
-
-      const toolUses = this.lastToolUses();
-      // any untrusted tool: return to client for permission
-      const untrusted = toolUses.filter((b) => !trusted.has(b.name));
-      if (untrusted.length > 0) break;
-
-      // all tools are trusted: execute inline, emit tool_result events, and loop
-      next = [];
-      for (const b of toolUses) {
-        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
-        yield {
-          event: "tool_result" as const,
-          toolCallId: b.toolCallId,
-          content,
-        };
-        next.push({ role: "tool", toolCallId: b.toolCallId, content });
-      }
+      // pass inline tool results as incoming for the next step
+      next = generated.filter((m): m is ToolMessage => m.role === "tool");
     }
-
-    yield { event: "turn_stop" as const, stopReason };
   }
 
   /**
-   * Runs a single agent turn in message streaming mode, yielding complete text/thinking
-   * events (not deltas). Uses a non-streaming LLM call internally, then emits SSE events
-   * from the response. Loops on trusted inline tool calls.
+   * Runs a single LLM step in message streaming mode: calls the model, calls `onEvent`
+   * for each SSE event, executes any trusted inline tools, and returns the generated
+   * messages and whether the loop should stop.
+   *
+   * Override to customize step behavior — same patterns as `runStepStreamNone` apply.
    */
-  async *runTurnMessage(req: PostSessionTurnRequest): AsyncIterable<MessageSSEEvent> {
-    this.applySessionOverrides(req);
-    const messages = req.messages;
-    const incoming = await this.resolvePermissions(messages);
-    const trusted = this.trustedTools();
+  protected async runStepStreamMessage(
+    incoming: StepIncomingMessage[],
+    onEvent: (event: MessageSSEEvent) => void,
+  ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
+    // call the model with current history + incoming messages
+    const res = await this.model.call([...this.history, ...incoming], this.enabledToolSpecs());
+    const generated: AgentMessage[] = [...res.messages];
+    let stopReason: StopReason | undefined = res.stopReason;
 
-    yield { event: "turn_start" as const };
-
-    let stopReason: StopReason = "end_turn";
-    let next: StepIncomingMessage[] = incoming;
-
-    while (true) {
-      // call the LLM non-streaming, then emit events from the response messages
-      const res = await this.call(next);
-      stopReason = res.stopReason;
-      next = [];
-
-      for (const msg of res.messages) {
-        if (msg.role === "assistant") {
-          const blocks = Array.isArray(msg.content)
-            ? msg.content
-            : [{ type: "text" as const, text: msg.content }];
-          for (const b of blocks) {
-            if (b.type === "text") yield { event: "text" as const, text: b.text };
-            else if (b.type === "thinking")
-              yield { event: "thinking" as const, thinking: b.thinking };
-            else if (b.type === "tool_use")
-              yield {
-                event: "tool_call" as const,
-                toolCallId: b.toolCallId,
-                name: b.name,
-                input: b.input,
-              };
-          }
+    // emit SSE events for each assistant message block
+    for (const msg of res.messages) {
+      if (msg.role === "assistant") {
+        const blocks = Array.isArray(msg.content)
+          ? msg.content
+          : [{ type: "text" as const, text: msg.content }];
+        for (const b of blocks) {
+          if (b.type === "text") onEvent({ event: "text" as const, text: b.text });
+          else if (b.type === "thinking")
+            onEvent({ event: "thinking" as const, thinking: b.thinking });
+          else if (b.type === "tool_use")
+            onEvent({
+              event: "tool_call" as const,
+              toolCallId: b.toolCallId,
+              name: b.name,
+              input: b.input,
+            });
         }
-      }
-
-      // non-tool stop: we're done
-      if (stopReason !== "tool_use") break;
-
-      const toolUses = this.lastToolUses();
-      // any untrusted tool: return to client for permission
-      const untrusted = toolUses.filter((b) => !trusted.has(b.name));
-      if (untrusted.length > 0) break;
-
-      // all tools are trusted: execute inline, emit tool_result events, and loop
-      for (const b of toolUses) {
-        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
-        yield {
-          event: "tool_result" as const,
-          toolCallId: b.toolCallId,
-          content,
-        };
-        next.push({ role: "tool", toolCallId: b.toolCallId, content });
       }
     }
 
-    yield { event: "turn_stop" as const, stopReason };
+    if (res.stopReason === "tool_use") {
+      const trusted = this.trustedTools();
+      const toolUses = res.messages.flatMap((m) =>
+        m.role === "assistant" && Array.isArray(m.content)
+          ? m.content.filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
+          : [],
+      );
+      const hasUntrusted = toolUses.some((b) => !trusted.has(b.name));
+
+      // execute trusted tools inline and emit tool_result events as they complete
+      for (const b of toolUses.filter((b) => trusted.has(b.name))) {
+        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
+        const toolMsg: ToolMessage = { role: "tool", toolCallId: b.toolCallId, content };
+        generated.push(toolMsg);
+        onEvent({ event: "tool_result" as const, toolCallId: b.toolCallId, content });
+      }
+
+      // stop only if there are untrusted tools requiring client permission
+      stopReason = hasUntrusted ? res.stopReason : undefined;
+    }
+
+    // atomically append incoming + all generated messages (including inline tool results) to history
+    this.history.push(...incoming, ...generated);
+    return { generated, stopReason };
+  }
+
+  /**
+   * Runs a single agent turn in message streaming mode, calling `onEvent` for each SSE event.
+   * Uses a non-streaming LLM call internally, then emits SSE events from the response.
+   * Loops on trusted inline tool calls.
+   */
+  async runTurnMessage(
+    req: PostSessionTurnRequest,
+    onEvent: (event: MessageSSEEvent) => void,
+  ): Promise<void> {
+    this.applySessionOverrides(req);
+    const incoming = await this.resolvePermissions(req.messages);
+
+    onEvent({ event: "turn_start" as const });
+
+    let next: StepIncomingMessage[] = incoming;
+
+    while (true) {
+      const { generated, stopReason } = await this.runStepStreamMessage(next, onEvent);
+      if (stopReason !== undefined) {
+        onEvent({ event: "turn_stop" as const, stopReason });
+        break;
+      }
+      // pass inline tool results as incoming for the next step
+      next = generated.filter((m): m is ToolMessage => m.role === "tool");
+    }
+  }
+
+  /**
+   * Runs a single LLM step without streaming: calls the model, executes any trusted
+   * inline tools, and returns the generated messages and whether the loop should stop.
+   *
+   * Override to customize step behavior, for example:
+   * - Filter or transform `incoming` before passing to the model
+   * - Collect all generated messages for auditing
+   * - Compact history after the step by directly modifying `this.history`
+   *
+   * The returned `generated` messages are accumulated into the final turn result and can
+   * also be filtered in the override if needed.
+   *
+   * ```ts
+   * protected async runStepStreamNone(incoming) {
+   *   const filtered = incoming.filter(...);
+   *   const res = await super.runStepStreamNone(filtered);
+   *   this.fullHistory.push(...res.generated);
+   *   this.history = this.history.slice(-MAX);
+   *   return res;
+   * }
+   * ```
+   */
+  protected async runStepStreamNone(
+    incoming: StepIncomingMessage[],
+  ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
+    // call the model with current history + incoming messages
+    const res = await this.model.call([...this.history, ...incoming], this.enabledToolSpecs());
+    const generated: AgentMessage[] = [...res.messages];
+    let stopReason: StopReason | undefined = res.stopReason;
+
+    if (res.stopReason === "tool_use") {
+      const trusted = this.trustedTools();
+      // extract all tool_use blocks from the assistant response
+      const toolUses = res.messages.flatMap((m) =>
+        m.role === "assistant" && Array.isArray(m.content)
+          ? m.content.filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
+          : [],
+      );
+      // execute trusted tools inline and append their results to generated
+      const hasUntrusted = toolUses.some((b) => !trusted.has(b.name));
+      for (const b of toolUses.filter((b) => trusted.has(b.name))) {
+        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
+        generated.push({ role: "tool", toolCallId: b.toolCallId, content });
+      }
+      // stop only if there are untrusted tools requiring client permission
+      stopReason = hasUntrusted ? res.stopReason : undefined;
+    }
+
+    // atomically append incoming + all generated messages (including inline tool results) to history
+    this.history.push(...incoming, ...generated);
+    return { generated, stopReason };
   }
 
   /**
@@ -254,33 +330,16 @@ export class Session {
    */
   async runTurnNone(req: PostSessionTurnRequest): Promise<PostSessionTurnResponse> {
     this.applySessionOverrides(req);
-    const messages = req.messages;
-    const incoming = await this.resolvePermissions(messages);
-    const trusted = this.trustedTools();
+    const incoming = await this.resolvePermissions(req.messages);
     const newMessages: AgentMessage[] = [];
     let next: StepIncomingMessage[] = incoming;
 
     while (true) {
-      // call the LLM with the next batch of messages
-      const res = await this.call(next);
-      newMessages.push(...res.messages);
-
-      // non-tool stop: we're done
-      if (res.stopReason !== "tool_use")
-        return { stopReason: res.stopReason, messages: newMessages };
-
-      const toolUses = this.lastToolUses();
-      // any untrusted tool: return to client for permission
-      const untrusted = toolUses.filter((b) => !trusted.has(b.name));
-      if (untrusted.length > 0) return { stopReason: "tool_use", messages: newMessages };
-
-      // all tools are trusted: execute inline and loop
-      next = [];
-      for (const b of toolUses) {
-        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
-        next.push({ role: "tool", toolCallId: b.toolCallId, content });
-      }
-      newMessages.push(...(next as ToolMessage[]));
+      const { generated, stopReason } = await this.runStepStreamNone(next);
+      newMessages.push(...generated);
+      if (stopReason !== undefined) return { stopReason, messages: newMessages };
+      // pass inline tool results as incoming for the next step
+      next = generated.filter((m): m is ToolMessage => m.role === "tool");
     }
   }
 
@@ -296,19 +355,6 @@ export class Session {
         ...this.agentConfig,
         options: { ...this.agentConfig.options, ...req.agent.options },
       };
-  }
-
-  /** Returns all `tool_use` blocks from the most recent assistant message in history. */
-  private lastToolUses(): {
-    toolCallId: string;
-    name: string;
-    input: Record<string, unknown>;
-  }[] {
-    const last = [...this.history].reverse().find((m) => m.role === "assistant");
-    if (!last || !Array.isArray(last.content)) return [];
-    return last.content.filter(
-      (b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use",
-    );
   }
 
   /** Serializes the session state for a `GET /session/:id` response. History is not included. */

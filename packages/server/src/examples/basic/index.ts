@@ -98,15 +98,15 @@ const handler: Handler = {
     if (!session) throw new Error(`Session not found: ${sessionId}`);
     return session.runTurnNone(req);
   },
-  postSessionTurnStreamDelta(sessionId: string, req: PostSessionTurnRequest) {
+  postSessionTurnStreamDelta(sessionId: string, req: PostSessionTurnRequest, onEvent) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session.runTurnDelta(req);
+    return session.runTurnDelta(req, onEvent);
   },
-  postSessionTurnStreamMessage(sessionId: string, req: PostSessionTurnRequest) {
+  postSessionTurnStreamMessage(sessionId: string, req: PostSessionTurnRequest, onEvent) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session.runTurnMessage(req);
+    return session.runTurnMessage(req, onEvent);
   },
 
   async getSession(sessionId: string) {

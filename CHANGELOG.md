@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **core**: New `SessionInfo` interface — the session data shape used in `GetSessionResponse` and `GetSessionsResponse.sessions`
 - **core**: New `AgentCapabilities` interface extracted from `AgentInfo.capabilities`
 - **server**: `Agent.stream()` and `Agent.application()` builder methods to declare stream modes and application input capabilities
+- **server**: `Session.runStepStreamNone`, `Session.runStepStreamDelta`, `Session.runStepStreamMessage` — protected step methods that can be overridden to customize per-step behavior (history compaction, auditing, filtering)
 
 ### Changed
 
@@ -41,13 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **server**: `Handler.getSession` now returns `GetSessionResponse | undefined` instead of throwing when session is not found
 - **server**: `Handler.getSessionHistory` signature changed to `(sessionId: string, type) => Promise<HistoryMessage[] | undefined>` — returns `undefined` when session is not found; the router responds with 404 accordingly
 - **server**: `Handler` methods renamed to match endpoint conventions: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
-- **server**: `Handler.postSessionTurn` split into three distinct methods: `postSessionTurnStreamNone`, `postSessionTurnStreamDelta` (returns `AsyncIterable<DeltaSSEEvent>`), `postSessionTurnStreamMessage` (returns `AsyncIterable<MessageSSEEvent>`)
+- **server**: `Handler.postSessionTurn` split into three distinct methods: `postSessionTurnStreamNone`, `postSessionTurnStreamDelta` (now accepts `onEvent` callback, returns `Promise<void>`), `postSessionTurnStreamMessage` (now accepts `onEvent` callback, returns `Promise<void>`)
+- **server**: `Session.runTurnDelta` and `Session.runTurnMessage` now accept an `onEvent` callback instead of returning `AsyncIterable`
 - **server**: `Session.runTurn` removed; replaced by `runTurnNone`, `runTurnDelta`, `runTurnMessage` (each takes a full `PostSessionTurnRequest`)
 - **server**: `Session.toSessionResponse()` renamed to `toSessionInfo()`
 - **client**: Client methods renamed to match: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
 
 ### Removed
 
+- **server**: `Session.stream()` and `Session.call()` protected methods removed; override `runStepStreamDelta`, `runStepStreamMessage`, or `runStepStreamNone` instead
 - **server**: `TurnMessages` type; it was an internal implementation detail
 
 ## [0.7.3] - 2026-04-18

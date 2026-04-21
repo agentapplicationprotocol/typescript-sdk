@@ -40,25 +40,16 @@ export interface Handler {
   postSessionTurnStreamDelta(
     sessionId: string,
     req: PostSessionTurnRequest,
-  ): AsyncIterable<DeltaSSEEvent>;
+    onEvent: (event: DeltaSSEEvent) => void,
+  ): Promise<void>;
   /** Runs a message-streaming agent turn for `POST /sessions/:id/turns` with `stream: "message"`. */
   postSessionTurnStreamMessage(
     sessionId: string,
     req: PostSessionTurnRequest,
-  ): AsyncIterable<MessageSSEEvent>;
+    onEvent: (event: MessageSSEEvent) => void,
+  ): Promise<void>;
   /** Deletes a session for `DELETE /sessions/:id`. */
   deleteSession(sessionId: string): Promise<void>;
-}
-
-// --- SSE helper ---
-
-async function writeSSEEvents(
-  stream: SSEStreamingApi,
-  events: AsyncIterable<SSEEvent>,
-): Promise<void> {
-  for await (const { event, ...data } of events) {
-    await stream.writeSSE({ event, data: JSON.stringify(data) });
-  }
 }
 
 function redactSecretOptions(session: SessionInfo, agents: AgentInfo[]): SessionInfo {
@@ -111,13 +102,17 @@ export function aap(handler: Handler): Hono {
   router.post("/sessions/:id/turns", async (c) => {
     const req = await c.req.json<PostSessionTurnRequest>();
     const id = c.req.param("id");
+    const writeEvent =
+      (stream: SSEStreamingApi) =>
+      ({ event, ...data }: SSEEvent) =>
+        stream.writeSSE({ event, data: JSON.stringify(data) });
     if (req.stream === "delta")
       return streamSSE(c, (stream) =>
-        writeSSEEvents(stream, handler.postSessionTurnStreamDelta(id, req)),
+        handler.postSessionTurnStreamDelta(id, req, writeEvent(stream)),
       );
     if (req.stream === "message")
       return streamSSE(c, (stream) =>
-        writeSSEEvents(stream, handler.postSessionTurnStreamMessage(id, req)),
+        handler.postSessionTurnStreamMessage(id, req, writeEvent(stream)),
       );
     return c.json(await handler.postSessionTurnStreamNone(id, req));
   });

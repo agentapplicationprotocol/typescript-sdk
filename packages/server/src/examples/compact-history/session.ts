@@ -1,7 +1,9 @@
 import type {
-  PostSessionTurnResponse,
+  AgentMessage,
   DeltaSSEEvent,
   HistoryMessage,
+  MessageSSEEvent,
+  StopReason,
 } from "@agentapplicationprotocol/core";
 import { Session, StepIncomingMessage } from "../../session.js";
 
@@ -33,17 +35,31 @@ export class TruncatedHistorySession extends Session {
     this.history = compact(this.history);
   }
 
-  /** Streams the model response, then compacts history. */
-  protected async *stream(messages: StepIncomingMessage[]): AsyncIterable<DeltaSSEEvent> {
+  protected async runStepStreamDelta(
+    incoming: StepIncomingMessage[],
+    onEvent: (event: DeltaSSEEvent) => void,
+  ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
     const before = this.history.length;
-    for await (const e of super.stream(messages)) yield e;
+    const res = await super.runStepStreamDelta(incoming, onEvent);
     this.syncAndCompact(before);
+    return res;
   }
 
-  /** Calls the model, then compacts history. */
-  protected async call(messages: StepIncomingMessage[]): Promise<PostSessionTurnResponse> {
+  protected async runStepStreamMessage(
+    incoming: StepIncomingMessage[],
+    onEvent: (event: MessageSSEEvent) => void,
+  ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
     const before = this.history.length;
-    const res = await super.call(messages);
+    const res = await super.runStepStreamMessage(incoming, onEvent);
+    this.syncAndCompact(before);
+    return res;
+  }
+
+  protected async runStepStreamNone(
+    incoming: StepIncomingMessage[],
+  ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
+    const before = this.history.length;
+    const res = await super.runStepStreamNone(incoming);
     this.syncAndCompact(before);
     return res;
   }
