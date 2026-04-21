@@ -101,8 +101,8 @@ export class Session {
    *
    * Override to customize history sent to the model, e.g. compaction or summarization.
    */
-  protected async *stream(messages: StepIncomingMessage[]): AsyncIterable<DeltaSSEEvent> {
-    const history = [...this.history, ...messages];
+  protected async *stream(incoming: StepIncomingMessage[]): AsyncIterable<DeltaSSEEvent> {
+    const history = [...this.history, ...incoming];
     const events: SSEEvent[] = [];
     try {
       for await (const e of this.model.stream(history, this.enabledToolSpecs())) {
@@ -114,7 +114,7 @@ export class Session {
       return;
     }
     const [resMessages] = sseEventsToMessages(events);
-    this.history.push(...messages, ...resMessages);
+    this.history.push(...incoming, ...resMessages);
   }
 
   /**
