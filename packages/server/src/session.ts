@@ -21,14 +21,39 @@ import { Agent } from "./agent";
 
 export type StepIncomingMessage = UserMessage | ToolMessage;
 
-/** Manages a stateful conversation session, accumulating history across turns. */
+/**
+ * Manages a stateful conversation session, accumulating history across turns.
+ *
+ * To customize the agent loop, subclass `Session` and override one or more of the
+ * protected step methods:
+ * - `runStepStreamNone` — called each step during a non-streaming turn
+ * - `runStepStreamDelta` — called each step during a delta-streaming turn
+ * - `runStepStreamMessage` — called each step during a message-streaming turn
+ *
+ * Each override receives the incoming messages for that step and can filter or
+ * transform them, intercept events, compact `this.history`, or collect generated
+ * messages for auditing before delegating to `super`.
+ *
+ * ```ts
+ * class MySession extends Session {
+ *   protected async runStepStreamNone(incoming) {
+ *     const res = await super.runStepStreamNone(incoming);
+ *     this.history = this.history.slice(-MAX_HISTORY);
+ *     return res;
+ *   }
+ * }
+ * ```
+ */
 export class Session {
   sessionId: string;
   agent: Agent;
   agentConfig: AgentConfig;
   /** Client-side tools declared for this session. */
   clientTools: ToolSpec[];
-  /** Accumulated conversation history across all turns. */
+  /** The history passed to the LLM on each step. This is typically a compacted or
+   * sliding-window view, not the full conversation. To implement custom compaction,
+   * override a `runStepStreamX` method, truncate `this.history` after calling `super`,
+   * and maintain your own full history separately. */
   history: HistoryMessage[];
   model: ModelProvider;
 
@@ -99,7 +124,24 @@ export class Session {
    * `onEvent` for each delta event, executes any trusted inline tools, and returns the
    * generated messages and whether the loop should stop.
    *
-   * Override to customize step behavior — same patterns as `runStepStreamNone` apply.
+   * Override to customize step behavior, for example:
+   * - Filter or transform `incoming` before passing to the model
+   * - Intercept or suppress specific `onEvent` calls
+   * - Compact history after the step by directly modifying `this.history`
+   *
+   * The returned `generated` messages are the full set produced in this step and are
+   * automatically appended to `this.history`. To customize the reply, modify the
+   * returned `generated` array. To compact context, truncate `this.history` after
+   * calling `super` — this does not affect `generated` or the turn reply.
+   *
+   * ```ts
+   * protected async runStepStreamDelta(incoming, onEvent) {
+   *   const filtered = incoming.filter(...);
+   *   const res = await super.runStepStreamDelta(filtered, onEvent);
+   *   this.history = this.history.slice(-MAX);
+   *   return res;
+   * }
+   * ```
    */
   protected async runStepStreamDelta(
     incoming: StepIncomingMessage[],
@@ -158,6 +200,7 @@ export class Session {
    * Resolves permissions, then loops: streams the model, executes any trusted
    * server tools inline, and repeats until a non-tool-use stop or an untrusted
    * tool is encountered.
+   * To customize per-step behavior, subclass and override `runStepStreamDelta`.
    */
   async runTurnStreamDelta(
     req: PostSessionTurnRequest,
@@ -186,7 +229,24 @@ export class Session {
    * for each SSE event, executes any trusted inline tools, and returns the generated
    * messages and whether the loop should stop.
    *
-   * Override to customize step behavior — same patterns as `runStepStreamNone` apply.
+   * Override to customize step behavior, for example:
+   * - Filter or transform `incoming` before passing to the model
+   * - Intercept or suppress specific `onEvent` calls
+   * - Compact history after the step by directly modifying `this.history`
+   *
+   * The returned `generated` messages are the full set produced in this step and are
+   * automatically appended to `this.history`. To customize the reply, modify the
+   * returned `generated` array. To compact context, truncate `this.history` after
+   * calling `super` — this does not affect `generated` or the turn reply.
+   *
+   * ```ts
+   * protected async runStepStreamMessage(incoming, onEvent) {
+   *   const filtered = incoming.filter(...);
+   *   const res = await super.runStepStreamMessage(filtered, onEvent);
+   *   this.history = this.history.slice(-MAX);
+   *   return res;
+   * }
+   * ```
    */
   protected async runStepStreamMessage(
     incoming: StepIncomingMessage[],
@@ -248,6 +308,7 @@ export class Session {
    * Runs a single agent turn in message streaming mode, calling `onEvent` for each SSE event.
    * Uses a non-streaming LLM call internally, then emits SSE events from the response.
    * Loops on trusted inline tool calls.
+   * To customize per-step behavior, subclass and override `runStepStreamMessage`.
    */
   async runTurnStreamMessage(
     req: PostSessionTurnRequest,
@@ -280,8 +341,10 @@ export class Session {
    * - Collect all generated messages for auditing
    * - Compact history after the step by directly modifying `this.history`
    *
-   * The returned `generated` messages are accumulated into the final turn result and can
-   * also be filtered in the override if needed.
+   * The returned `generated` messages are the full set produced in this step and are
+   * automatically appended to `this.history`. To customize the reply, modify the
+   * returned `generated` array. To compact context, truncate `this.history` after
+   * calling `super` — this does not affect `generated` or the turn reply.
    *
    * ```ts
    * protected async runStepStreamNone(incoming) {
@@ -327,6 +390,7 @@ export class Session {
   /**
    * Runs a single agent turn without streaming, returning a complete `PostSessionTurnResponse`.
    * Loops the LLM call as long as all tool calls are trusted and executed inline.
+   * To customize per-step behavior, subclass and override `runStepStreamNone`.
    */
   async runTurnStreamNone(req: PostSessionTurnRequest): Promise<PostSessionTurnResponse> {
     this.applySessionOverrides(req);
