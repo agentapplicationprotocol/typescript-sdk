@@ -8,7 +8,7 @@ import type {
 import { Session, StepIncomingMessage } from "../../session.js";
 
 /** In-memory session store. */
-export const sessions = new Map<string, TruncatedHistorySession>();
+export const sessions = new Map<string, TruncatedSession>();
 
 const COMPACTED_HISTORY_SIZE = 10;
 
@@ -26,12 +26,12 @@ function compact(history: HistoryMessage[]): HistoryMessage[] {
  * `this.history` holds the compacted window sent to the model.
  * `fullHistory` retains the complete uncompacted history.
  */
-export class TruncatedHistorySession extends Session {
+export class TruncatedSession extends Session {
   fullHistory: HistoryMessage[] = [];
 
   /** Appends new history entries to `fullHistory` and trims `this.history` to the compacted window. */
-  private syncAndCompact(before: number) {
-    this.fullHistory.push(...this.history.slice(before));
+  private syncAndCompact(incoming: StepIncomingMessage[], generated: AgentMessage[]) {
+    this.fullHistory.push(...incoming, ...generated);
     this.history = compact(this.history);
   }
 
@@ -39,9 +39,8 @@ export class TruncatedHistorySession extends Session {
     incoming: StepIncomingMessage[],
     onEvent: (event: DeltaSSEEvent) => void,
   ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
-    const before = this.history.length;
     const res = await super.runStepStreamDelta(incoming, onEvent);
-    this.syncAndCompact(before);
+    this.syncAndCompact(incoming, res.generated);
     return res;
   }
 
@@ -49,18 +48,16 @@ export class TruncatedHistorySession extends Session {
     incoming: StepIncomingMessage[],
     onEvent: (event: MessageSSEEvent) => void,
   ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
-    const before = this.history.length;
     const res = await super.runStepStreamMessage(incoming, onEvent);
-    this.syncAndCompact(before);
+    this.syncAndCompact(incoming, res.generated);
     return res;
   }
 
   protected async runStepStreamNone(
     incoming: StepIncomingMessage[],
   ): Promise<{ generated: AgentMessage[]; stopReason: StopReason | undefined }> {
-    const before = this.history.length;
     const res = await super.runStepStreamNone(incoming);
-    this.syncAndCompact(before);
+    this.syncAndCompact(incoming, res.generated);
     return res;
   }
 }

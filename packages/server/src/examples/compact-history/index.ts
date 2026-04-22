@@ -6,7 +6,7 @@ import { aap } from "../../server.js";
 import { Agent } from "../../agent.js";
 import { AiModelProvider } from "../../model.js";
 import { createOpenAI } from "@ai-sdk/openai";
-import { TruncatedHistorySession, sessions } from "./session.js";
+import { TruncatedSession, sessions } from "./session.js";
 import type {
   PostSessionsRequest,
   PostSessionsResponse,
@@ -63,7 +63,7 @@ const agent = new Agent("compact-history-agent", {
     },
   );
 
-const handler: Handler<TruncatedHistorySession> = {
+const handler: Handler<TruncatedSession> = {
   getMeta() {
     return { agents: [agent.info] };
   },
@@ -76,7 +76,7 @@ const handler: Handler<TruncatedHistorySession> = {
       apiKey: req.agent.options?.apiKey || undefined,
     });
     const model = new AiModelProvider(openai.chat(req.agent.options?.model ?? "gpt-4o"));
-    const session = new TruncatedHistorySession(
+    const session = new TruncatedSession(
       sessionId,
       agent,
       model,
@@ -88,21 +88,13 @@ const handler: Handler<TruncatedHistorySession> = {
     return Promise.resolve({ sessionId });
   },
 
-  postSessionTurnStreamNone(session: TruncatedHistorySession, req: PostSessionTurnRequest) {
+  postSessionTurnStreamNone(session: TruncatedSession, req: PostSessionTurnRequest) {
     return session.runTurnStreamNone(req);
   },
-  postSessionTurnStreamDelta(
-    session: TruncatedHistorySession,
-    req: PostSessionTurnRequest,
-    onEvent,
-  ) {
+  postSessionTurnStreamDelta(session: TruncatedSession, req: PostSessionTurnRequest, onEvent) {
     return session.runTurnStreamDelta(req, onEvent);
   },
-  postSessionTurnStreamMessage(
-    session: TruncatedHistorySession,
-    req: PostSessionTurnRequest,
-    onEvent,
-  ) {
+  postSessionTurnStreamMessage(session: TruncatedSession, req: PostSessionTurnRequest, onEvent) {
     return session.runTurnStreamMessage(req, onEvent);
   },
 
