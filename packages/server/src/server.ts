@@ -28,9 +28,9 @@ export interface ToSessionInfo {
 export interface Handler<T extends ToSessionInfo = Session> {
   /** Returns server metadata and agent list for `GET /meta`. */
   getMeta(): Omit<GetMetaResponse, "version">;
-  /** Returns a paginated list of sessions for `GET /sessions`. */
+  /** Returns a paginated list of sessions for `GET /sessions`. Secret options are automatically redacted by {@link aap | `aap`}. */
   getSessions(params: { after?: string }): Promise<GetSessionsResponse>;
-  /** Returns the session object, or `undefined` if not found — the router will respond with 404. */
+  /** Returns the session object, or `undefined` if not found — {@link aap | `aap`} will respond with 404. Secret options are automatically redacted by {@link aap | `aap`}. */
   getSession(sessionId: string): Promise<T | undefined>;
   /** Returns the session history, or `undefined` if the session does not exist or the history type is not supported — the router will respond with 404. */
   getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
