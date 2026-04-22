@@ -8,6 +8,7 @@ import type {
   SessionInfo,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
+import { PROTOCOL_VERSION } from "@agentapplicationprotocol/core";
 
 const BASE_URL = "https://example.com";
 const API_KEY = "test-key";
@@ -52,21 +53,21 @@ beforeEach(() => {
 describe("Client", () => {
   it("strips trailing slash from baseUrl", () => {
     const c = new Client({ baseUrl: BASE_URL + "/", apiKey: API_KEY });
-    const fetch = mockFetch({ version: 3, agents: [] } satisfies GetMetaResponse);
+    const fetch = mockFetch({ version: PROTOCOL_VERSION, agents: [] } satisfies GetMetaResponse);
     vi.stubGlobal("fetch", fetch);
     c.getMeta();
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/meta`);
   });
 
   it("sends Authorization header", async () => {
-    const fetch = mockFetch({ version: 3, agents: [] } satisfies GetMetaResponse);
+    const fetch = mockFetch({ version: PROTOCOL_VERSION, agents: [] } satisfies GetMetaResponse);
     vi.stubGlobal("fetch", fetch);
     await client.getMeta();
     expect(fetch.mock.calls[0][1].headers["Authorization"]).toBe(`Bearer ${API_KEY}`);
   });
 
   it("getMeta: GET /meta", async () => {
-    const meta: GetMetaResponse = { version: 3, agents: [] };
+    const meta: GetMetaResponse = { version: PROTOCOL_VERSION, agents: [] };
     vi.stubGlobal("fetch", mockFetch(meta));
     expect(await client.getMeta()).toEqual(meta);
   });

@@ -12,8 +12,9 @@ import type {
   SessionInfo,
   SSEEvent,
 } from "@agentapplicationprotocol/core";
+import { PROTOCOL_VERSION } from "@agentapplicationprotocol/core";
 
-const meta: GetMetaResponse = { version: 3, agents: [] };
+const meta: GetMetaResponse = { version: PROTOCOL_VERSION, agents: [] };
 const sessionInfo: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
 const session: SessionInfo & ToSessionInfo = { ...sessionInfo, toSessionInfo: () => sessionInfo };
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **core**: New `PROTOCOL_VERSION` constant (`3`) exported from `@agentapplicationprotocol/core`
 - **core**: New `AgentMessage = AssistantMessage | ToolMessage` and `ApplicationMessage = UserMessage | ToolMessage | ToolPermissionMessage` union types
 - **server**: `redactSessionSecrets` exported for use when building a custom AAP server without Hono
 - **server**: New `ToSessionInfo` interface — implemented by session objects that can be serialized to `SessionInfo`

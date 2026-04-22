@@ -1,6 +1,7 @@
 import type { AgentInfo, HistoryType } from "./agent.js";
 import type { AgentMessage, HistoryMessage } from "./messages.js";
 import type { SessionInfo, StopReason } from "./session.js";
+import { PROTOCOL_VERSION } from "../version.js";
 
 /** JSON response body for non-streaming (`stream: "none"`) requests. */
 export interface PostSessionTurnResponse {
@@ -32,6 +33,6 @@ export interface GetSessionsResponse {
 /** Response body for `GET /meta`. */
 export interface GetMetaResponse {
   /** AAP protocol version. */
-  version: 3;
+  version: typeof PROTOCOL_VERSION;
   agents: AgentInfo[];
 }

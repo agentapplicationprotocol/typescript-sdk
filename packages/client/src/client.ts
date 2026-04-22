@@ -10,6 +10,7 @@ import {
   SessionInfo,
   PostSessionTurnRequest,
   SSEEvent,
+  PROTOCOL_VERSION,
 } from "@agentapplicationprotocol/core";
 
 export interface ClientOptions {
@@ -79,8 +80,10 @@ export class Client {
   /** GET /meta */
   async getMeta(): Promise<GetMetaResponse> {
     const meta = await this.request<GetMetaResponse>("GET", "/meta");
-    if (meta.version !== 3) {
-      throw new Error(`Protocol version mismatch: expected 3, got ${meta.version}`);
+    if (meta.version !== PROTOCOL_VERSION) {
+      throw new Error(
+        `Protocol version mismatch: expected ${PROTOCOL_VERSION}, got ${meta.version}`,
+      );
     }
     return meta;
   }

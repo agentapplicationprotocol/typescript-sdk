@@ -15,6 +15,7 @@ import {
   SSEEvent,
   DeltaSSEEvent,
   MessageSSEEvent,
+  PROTOCOL_VERSION,
 } from "@agentapplicationprotocol/core";
 import type { Session } from "./session.js";
 
@@ -109,7 +110,7 @@ export function aap<T extends ToSessionInfo>(handler: Handler<T>): Hono {
   const router = new Hono();
 
   router.get("/meta", (c) =>
-    c.json({ version: 3, ...handler.getMeta() } satisfies GetMetaResponse),
+    c.json({ version: PROTOCOL_VERSION, ...handler.getMeta() } satisfies GetMetaResponse),
   );
 
   router.post("/sessions", async (c) => {
