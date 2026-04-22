@@ -1,5 +1,5 @@
 export { aap, redactSessionSecrets } from "./server";
-export type { Handler } from "./server";
+export type { Handler, ToSessionInfo } from "./server";
 export {
   ModelProvider,
   AiModelProvider,

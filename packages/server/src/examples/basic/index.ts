@@ -93,25 +93,18 @@ const handler: Handler = {
     return Promise.resolve({ sessionId });
   },
 
-  postSessionTurnStreamNone(sessionId: string, req: PostSessionTurnRequest) {
-    const session = sessions.get(sessionId);
-    if (!session) throw new Error(`Session not found: ${sessionId}`);
+  postSessionTurnStreamNone(session: Session, req: PostSessionTurnRequest) {
     return session.runTurnStreamNone(req);
   },
-  postSessionTurnStreamDelta(sessionId: string, req: PostSessionTurnRequest, onEvent) {
-    const session = sessions.get(sessionId);
-    if (!session) throw new Error(`Session not found: ${sessionId}`);
+  postSessionTurnStreamDelta(session: Session, req: PostSessionTurnRequest, onEvent) {
     return session.runTurnStreamDelta(req, onEvent);
   },
-  postSessionTurnStreamMessage(sessionId: string, req: PostSessionTurnRequest, onEvent) {
-    const session = sessions.get(sessionId);
-    if (!session) throw new Error(`Session not found: ${sessionId}`);
+  postSessionTurnStreamMessage(session: Session, req: PostSessionTurnRequest, onEvent) {
     return session.runTurnStreamMessage(req, onEvent);
   },
 
   async getSession(sessionId: string) {
-    const session = sessions.get(sessionId);
-    return session?.toSessionInfo();
+    return sessions.get(sessionId);
   },
 
   async getSessionHistory(sessionId: string, type: HistoryType) {

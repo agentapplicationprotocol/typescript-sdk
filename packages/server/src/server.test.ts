@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
 import { aap } from "./server";
-import type { Handler } from "./server";
+import type { Handler, ToSessionInfo } from "./server";
 import type {
   PostSessionTurnResponse,
   HistoryMessage,
@@ -14,10 +14,16 @@ import type {
 } from "@agentapplicationprotocol/core";
 
 const meta: GetMetaResponse = { version: 3, agents: [] };
-const session: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
+const sessionInfo: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
+const session: SessionInfo & ToSessionInfo = { ...sessionInfo, toSessionInfo: () => sessionInfo };
+
+/** Wraps a plain SessionInfo so it satisfies ToSessionInfo. */
+function withToSessionInfo(s: SessionInfo): SessionInfo & ToSessionInfo {
+  return { ...s, toSessionInfo: () => s };
+}
 const agentResponse: PostSessionTurnResponse = { stopReason: "end_turn", messages: [] };
 const postSessionsResponse = { sessionId: "s1" };
-const sessionList: GetSessionsResponse = { sessions: [session] };
+const sessionList: GetSessionsResponse = { sessions: [sessionInfo] };
 
 function makeSseHandler() {
   return async (onEvent: (e: SSEEvent) => void) => {
@@ -30,7 +36,7 @@ function makeSseHandler() {
   };
 }
 
-function makeHandler(overrides: Partial<Handler> = {}): Handler {
+function makeHandler(overrides: Partial<Handler<typeof session>> = {}): Handler<typeof session> {
   return {
     getMeta: vi.fn().mockReturnValue({ agents: [] }),
     getSessions: vi.fn().mockResolvedValue(sessionList),
@@ -40,16 +46,16 @@ function makeHandler(overrides: Partial<Handler> = {}): Handler {
     postSessionTurnStreamNone: vi.fn().mockResolvedValue(agentResponse),
     postSessionTurnStreamDelta: vi
       .fn()
-      .mockImplementation((_id, _req, onEvent) => makeSseHandler()(onEvent)),
+      .mockImplementation((_session, _req, onEvent) => makeSseHandler()(onEvent)),
     postSessionTurnStreamMessage: vi
       .fn()
-      .mockImplementation((_id, _req, onEvent) => makeSseHandler()(onEvent)),
+      .mockImplementation((_session, _req, onEvent) => makeSseHandler()(onEvent)),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
 
-function makeApp(handler: Handler, setup?: (app: Hono) => void): Hono {
+function makeApp(handler: Handler<typeof session>, setup?: (app: Hono) => void): Hono {
   const app = new Hono();
   setup?.(app);
   app.route("/", aap(handler));
@@ -76,7 +82,7 @@ describe("aap middleware", () => {
     const app = makeApp(makeHandler());
     const res = await app.fetch(req("GET", "/sessions/s1"));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual(session);
+    expect(await res.json()).toEqual(sessionInfo);
   });
 
   it("GET /session/:id redacts secret options", async () => {
@@ -86,7 +92,7 @@ describe("aap middleware", () => {
     };
     const app = makeApp(
       makeHandler({
-        getSession: vi.fn().mockResolvedValue(secretSession),
+        getSession: vi.fn().mockResolvedValue(withToSessionInfo(secretSession)),
         getMeta: vi.fn().mockReturnValue({
           agents: [
             {
@@ -218,7 +224,7 @@ describe("aap middleware", () => {
     };
     const app = makeApp(
       makeHandler({
-        getSession: vi.fn().mockResolvedValue(sessionWithOptions),
+        getSession: vi.fn().mockResolvedValue(withToSessionInfo(sessionWithOptions)),
         getMeta: vi.fn().mockReturnValue({ agents: [] }),
       }),
     );
@@ -233,7 +239,7 @@ describe("aap middleware", () => {
     };
     const app = makeApp(
       makeHandler({
-        getSession: vi.fn().mockResolvedValue(sessionWithOptions),
+        getSession: vi.fn().mockResolvedValue(withToSessionInfo(sessionWithOptions)),
         getMeta: vi.fn().mockReturnValue({
           agents: [
             {

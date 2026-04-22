@@ -4,7 +4,6 @@ import type { SSEStreamingApi } from "hono/streaming";
 import {
   AgentInfo,
   GetMetaResponse,
-  GetSessionResponse,
   GetSessionsResponse,
   PostSessionTurnResponse,
   PostSessionsResponse,
@@ -17,34 +16,40 @@ import {
   DeltaSSEEvent,
   MessageSSEEvent,
 } from "@agentapplicationprotocol/core";
+import type { Session } from "./session.js";
 
 // --- Handler interface ---
 
-export interface Handler {
+/** Implemented by session objects that can be serialized to AAP's `SessionInfo` shape. */
+export interface ToSessionInfo {
+  toSessionInfo(): SessionInfo;
+}
+
+export interface Handler<T extends ToSessionInfo = Session> {
   /** Returns server metadata and agent list for `GET /meta`. */
   getMeta(): Omit<GetMetaResponse, "version">;
   /** Returns a paginated list of sessions for `GET /sessions`. */
   getSessions(params: { after?: string }): Promise<GetSessionsResponse>;
-  /** Returns the session, or `undefined` if not found — the router will respond with 404. */
-  getSession(sessionId: string): Promise<GetSessionResponse | undefined>;
+  /** Returns the session object, or `undefined` if not found — the router will respond with 404. */
+  getSession(sessionId: string): Promise<T | undefined>;
   /** Returns the session history, or `undefined` if the session does not exist or the history type is not supported — the router will respond with 404. */
   getSessionHistory(sessionId: string, type: HistoryType): Promise<HistoryMessage[] | undefined>;
   /** Creates a new session and returns its ID for `POST /sessions`. */
   postSessions(req: PostSessionsRequest): Promise<PostSessionsResponse>;
-  /** Runs a non-streaming agent turn for `POST /sessions/:id/turns` with `stream: "none"`. */
+  /** Runs a non-streaming agent turn for `POST /sessions/:id/turns` with `stream: "none"`. The session is resolved via `getSession` before this is called — returns 404 if not found. */
   postSessionTurnStreamNone(
-    sessionId: string,
+    session: T,
     req: PostSessionTurnRequest,
   ): Promise<PostSessionTurnResponse>;
-  /** Runs a delta-streaming agent turn for `POST /sessions/:id/turns` with `stream: "delta"`. */
+  /** Runs a delta-streaming agent turn for `POST /sessions/:id/turns` with `stream: "delta"`. The session is resolved via `getSession` before this is called — returns 404 if not found. */
   postSessionTurnStreamDelta(
-    sessionId: string,
+    session: T,
     req: PostSessionTurnRequest,
     onEvent: (event: DeltaSSEEvent) => void,
   ): Promise<void>;
-  /** Runs a message-streaming agent turn for `POST /sessions/:id/turns` with `stream: "message"`. */
+  /** Runs a message-streaming agent turn for `POST /sessions/:id/turns` with `stream: "message"`. The session is resolved via `getSession` before this is called — returns 404 if not found. */
   postSessionTurnStreamMessage(
-    sessionId: string,
+    session: T,
     req: PostSessionTurnRequest,
     onEvent: (event: MessageSSEEvent) => void,
   ): Promise<void>;
@@ -93,7 +98,7 @@ export function redactSessionSecrets(session: SessionInfo, agents: AgentInfo[]):
  * // with base path:
  * app.route('/api/v1', aap(handler))
  */
-export function aap(handler: Handler): Hono {
+export function aap<T extends ToSessionInfo>(handler: Handler<T>): Hono {
   const router = new Hono();
 
   router.get("/meta", (c) =>
@@ -109,26 +114,28 @@ export function aap(handler: Handler): Hono {
   router.post("/sessions/:id/turns", async (c) => {
     const req = await c.req.json<PostSessionTurnRequest>();
     const id = c.req.param("id");
+    const session = await handler.getSession(id);
+    if (!session) return c.json({ error: "Session not found" }, 404);
     const writeEvent =
       (stream: SSEStreamingApi) =>
       ({ event, ...data }: SSEEvent) =>
         stream.writeSSE({ event, data: JSON.stringify(data) });
     if (req.stream === "delta")
       return streamSSE(c, (stream) =>
-        handler.postSessionTurnStreamDelta(id, req, writeEvent(stream)),
+        handler.postSessionTurnStreamDelta(session, req, writeEvent(stream)),
       );
     if (req.stream === "message")
       return streamSSE(c, (stream) =>
-        handler.postSessionTurnStreamMessage(id, req, writeEvent(stream)),
+        handler.postSessionTurnStreamMessage(session, req, writeEvent(stream)),
       );
-    return c.json(await handler.postSessionTurnStreamNone(id, req));
+    return c.json(await handler.postSessionTurnStreamNone(session, req));
   });
 
   router.get("/sessions/:id", async (c) => {
     const session = await handler.getSession(c.req.param("id"));
     if (!session) return c.json({ error: "Session not found" }, 404);
     const { agents } = handler.getMeta();
-    return c.json(redactSessionSecrets(session, agents));
+    return c.json(redactSessionSecrets(session.toSessionInfo(), agents));
   });
 
   router.get("/sessions/:id/history", async (c) => {
