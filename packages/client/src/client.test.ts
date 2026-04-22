@@ -107,26 +107,6 @@ describe("Client", () => {
     expect(fetch.mock.calls[0][0]).toBe(`${BASE_URL}/sessions?after=cursor1`);
   });
 
-  it("listAllSessions: paginates until no next", async () => {
-    const s1: SessionInfo = { sessionId: "s1", agent: { name: "a" } };
-    const s2: SessionInfo = { sessionId: "s2", agent: { name: "a" } };
-    const fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({ sessions: [s1], next: "c1" }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({ sessions: [s2] }),
-      });
-    vi.stubGlobal("fetch", fetch);
-    expect(await client.listAllSessions()).toEqual([s1, s2]);
-    expect(fetch).toHaveBeenCalledTimes(2);
-  });
-
   it("deleteSession: DELETE /sessions/:id returns void on 204", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 204 }));
     await expect(client.deleteSession("s1")).resolves.toBeUndefined();

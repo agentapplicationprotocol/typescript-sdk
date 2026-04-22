@@ -97,18 +97,6 @@ export class Client {
     return this.request("GET", path);
   }
 
-  /** Fetches all sessions across all pages. */
-  async listAllSessions(): Promise<SessionInfo[]> {
-    const sessions: SessionInfo[] = [];
-    let after: string | undefined;
-    do {
-      const res = await this.getSessions({ after });
-      sessions.push(...res.sessions);
-      after = res.next;
-    } while (after);
-    return sessions;
-  }
-
   /** GET /sessions/:id */
   getSession(sessionId: string): Promise<SessionInfo> {
     return this.request("GET", `/sessions/${sessionId}`);

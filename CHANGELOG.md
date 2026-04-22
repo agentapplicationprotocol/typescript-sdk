@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **client**: `listAllSessions` removed — use `getSessions` with manual pagination instead
 - **server**: `Session.stream()` and `Session.call()` protected methods removed; override `runStepStreamDelta`, `runStepStreamMessage`, or `runStepStreamNone` instead
 - **server**: `TurnMessages` type; it was an internal implementation detail
 
