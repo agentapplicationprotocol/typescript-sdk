@@ -25,6 +25,13 @@ export interface ToSessionInfo {
   toSessionInfo(): SessionInfo;
 }
 
+/**
+ * Implement this interface to connect your session store to the AAP server.
+ * Pass the implementation to {@link aap | `aap`} to mount all AAP endpoints.
+ *
+ * `T` is your session type — it must implement {@link ToSessionInfo} so the
+ * server can serialize it. Defaults to {@link Session}.
+ */
 export interface Handler<T extends ToSessionInfo = Session> {
   /** Returns server metadata and agent list for `GET /meta`. */
   getMeta(): Omit<GetMetaResponse, "version">;
