@@ -1,5 +1,4 @@
 import { serve } from "@hono/node-server";
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -70,7 +69,7 @@ const handler: Handler<TruncatedHistorySession> = {
   },
 
   postSessions(req: PostSessionsRequest): Promise<PostSessionsResponse> {
-    const sessionId = `sess_${randomUUID()}`;
+    const sessionId = `sess_${Date.now()}`;
     // Build the model from client-supplied options
     const openai = createOpenAI({
       baseURL: req.agent.options?.baseURL || undefined,
