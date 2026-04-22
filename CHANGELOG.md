@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **core**: New `AgentMessage = AssistantMessage | ToolMessage` and `ApplicationMessage = UserMessage | ToolMessage | ToolPermissionMessage` union types
+- **server**: `redactSessionSecrets` exported for use when building a custom AAP server without Hono
 - **core**: New `HistoryType = "compacted" | "full"` type; `GetSessionHistoryResponse.history` is now typed as `Partial<Record<HistoryType, HistoryMessage[]>>`
 - **core**: New `ToolCallInput = Record<string, unknown>` type used in `ToolUseContentBlock.input` and `ToolCall.input`
 - **core**: New `ToolCall` interface (plain tool call payload: `toolCallId`, `name`, `input`) — previously named `ToolCallEvent`

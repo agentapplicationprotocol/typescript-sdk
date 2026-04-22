@@ -1,4 +1,4 @@
-export { aap } from "./server";
+export { aap, redactSessionSecrets } from "./server";
 export type { Handler } from "./server";
 export {
   ModelProvider,

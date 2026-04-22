@@ -52,7 +52,14 @@ export interface Handler {
   deleteSession(sessionId: string): Promise<void>;
 }
 
-function redactSecretOptions(session: SessionInfo, agents: AgentInfo[]): SessionInfo {
+/**
+ * Replaces secret option values in a `SessionInfo` with `"***"`.
+ *
+ * Use this when implementing `GET /sessions` and `GET /sessions/:id` in a custom
+ * AAP server to avoid leaking secret option values in responses.
+ * This is applied automatically when using the `aap` Hono app.
+ */
+export function redactSessionSecrets(session: SessionInfo, agents: AgentInfo[]): SessionInfo {
   const { options } = session.agent;
   if (!options) return session;
   const agentInfo = agents.find((a) => a.name === session.agent.name);
@@ -121,7 +128,7 @@ export function aap(handler: Handler): Hono {
     const session = await handler.getSession(c.req.param("id"));
     if (!session) return c.json({ error: "Session not found" }, 404);
     const { agents } = handler.getMeta();
-    return c.json(redactSecretOptions(session, agents));
+    return c.json(redactSessionSecrets(session, agents));
   });
 
   router.get("/sessions/:id/history", async (c) => {
@@ -139,7 +146,7 @@ export function aap(handler: Handler): Hono {
     const { agents } = handler.getMeta();
     return c.json({
       ...result,
-      sessions: result.sessions.map((s) => redactSecretOptions(s, agents)),
+      sessions: result.sessions.map((s) => redactSessionSecrets(s, agents)),
     });
   });
 
