@@ -115,7 +115,7 @@ export class Session {
         this.enabledToolSpecs(),
       )) {
         events.push(e);
-        // suppress turn_stop — runTurnDelta emits its own final turn_stop
+        // suppress turn_stop — runTurnStreamDelta emits its own final turn_stop
         if (e.event !== "turn_stop") onEvent(e);
         else stopReason = e.stopReason;
       }
@@ -159,7 +159,7 @@ export class Session {
    * server tools inline, and repeats until a non-tool-use stop or an untrusted
    * tool is encountered.
    */
-  async runTurnDelta(
+  async runTurnStreamDelta(
     req: PostSessionTurnRequest,
     onEvent: (event: DeltaSSEEvent) => void,
   ): Promise<void> {
@@ -249,7 +249,7 @@ export class Session {
    * Uses a non-streaming LLM call internally, then emits SSE events from the response.
    * Loops on trusted inline tool calls.
    */
-  async runTurnMessage(
+  async runTurnStreamMessage(
     req: PostSessionTurnRequest,
     onEvent: (event: MessageSSEEvent) => void,
   ): Promise<void> {
@@ -328,7 +328,7 @@ export class Session {
    * Runs a single agent turn without streaming, returning a complete `PostSessionTurnResponse`.
    * Loops the LLM call as long as all tool calls are trusted and executed inline.
    */
-  async runTurnNone(req: PostSessionTurnRequest): Promise<PostSessionTurnResponse> {
+  async runTurnStreamNone(req: PostSessionTurnRequest): Promise<PostSessionTurnResponse> {
     this.applySessionOverrides(req);
     const incoming = await this.resolvePermissions(req.messages);
     const newMessages: AgentMessage[] = [];

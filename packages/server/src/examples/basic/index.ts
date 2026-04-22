@@ -96,17 +96,17 @@ const handler: Handler = {
   postSessionTurnStreamNone(sessionId: string, req: PostSessionTurnRequest) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session.runTurnNone(req);
+    return session.runTurnStreamNone(req);
   },
   postSessionTurnStreamDelta(sessionId: string, req: PostSessionTurnRequest, onEvent) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session.runTurnDelta(req, onEvent);
+    return session.runTurnStreamDelta(req, onEvent);
   },
   postSessionTurnStreamMessage(sessionId: string, req: PostSessionTurnRequest, onEvent) {
     const session = sessions.get(sessionId);
     if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session.runTurnMessage(req, onEvent);
+    return session.runTurnStreamMessage(req, onEvent);
   },
 
   async getSession(sessionId: string) {

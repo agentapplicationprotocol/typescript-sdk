@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **server**: `Session.runTurnNone`, `runTurnDelta`, `runTurnMessage` renamed to `runTurnStreamNone`, `runTurnStreamDelta`, `runTurnStreamMessage`
 - **server**: `Agent` no longer enables any capabilities by default; use the new `.stream()` and `.application()` builder methods to opt in explicitly
 - **core**: `PostSessionTurnResponse.messages` narrowed from `HistoryMessage[]` to `AgentMessage[]`
 - **core**: `PostSessionTurnRequest.messages` narrowed from `(UserMessage | ToolMessage | ToolPermissionMessage)[]` to `ApplicationMessage[]`
@@ -44,8 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **server**: `Handler.getSessionHistory` signature changed to `(sessionId: string, type) => Promise<HistoryMessage[] | undefined>` — returns `undefined` when session is not found; the router responds with 404 accordingly
 - **server**: `Handler` methods renamed to match endpoint conventions: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
 - **server**: `Handler.postSessionTurn` split into three distinct methods: `postSessionTurnStreamNone`, `postSessionTurnStreamDelta` (now accepts `onEvent` callback, returns `Promise<void>`), `postSessionTurnStreamMessage` (now accepts `onEvent` callback, returns `Promise<void>`)
-- **server**: `Session.runTurnDelta` and `Session.runTurnMessage` now accept an `onEvent` callback instead of returning `AsyncIterable`
-- **server**: `Session.runTurn` removed; replaced by `runTurnNone`, `runTurnDelta`, `runTurnMessage` (each takes a full `PostSessionTurnRequest`)
+- **server**: `Session.runTurnStreamDelta` and `Session.runTurnStreamMessage` now accept an `onEvent` callback instead of returning `AsyncIterable`
+- **server**: `Session.runTurn` removed; replaced by `runTurnStreamNone`, `runTurnStreamDelta`, `runTurnStreamMessage` (each takes a full `PostSessionTurnRequest`)
 - **server**: `Session.toSessionResponse()` renamed to `toSessionInfo()`
 - **client**: Client methods renamed to match: `listSessions` → `getSessions`, `createSession` → `postSessions`, `sendTurn` → `postSessionTurn`
 
@@ -76,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **server**: Strip `$schema` field from `z.toJSONSchema()` output in tool `parameters`
-- **server**: Prevent yielding premature `turn_stop` event during streaming — `runTurnDelta` now suppresses the `turn_stop` from `stream()` and emits its own final one
+- **server**: Prevent yielding premature `turn_stop` event during streaming — `runTurnStreamDelta` now suppresses the `turn_stop` from `stream()` and emits its own final one
 - **server**: Yield `turn_stop` with `stopReason: "error"` when `model.stream()` throws
 
 ## [0.7.0] - 2026-04-04

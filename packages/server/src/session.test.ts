@@ -15,13 +15,13 @@ import z from "zod";
 function runTurn(s: Session, req: PostSessionTurnRequest) {
   if (req.stream === "delta") {
     const events: DeltaSSEEvent[] = [];
-    return s.runTurnDelta(req, (e) => events.push(e)).then(() => events);
+    return s.runTurnStreamDelta(req, (e) => events.push(e)).then(() => events);
   }
   if (req.stream === "message") {
     const events: SSEEvent[] = [];
-    return s.runTurnMessage(req, (e) => events.push(e)).then(() => events);
+    return s.runTurnStreamMessage(req, (e) => events.push(e)).then(() => events);
   }
-  return s.runTurnNone(req);
+  return s.runTurnStreamNone(req);
 }
 
 function makeModel(overrides: Partial<ModelProvider> = {}): ModelProvider {
@@ -469,7 +469,7 @@ describe("Session", () => {
     it("returns empty array when last assistant message has string content", async () => {
       const s = makeSession();
       s.history = [{ role: "assistant", content: "hello" }];
-      // runTurnNone will call lastToolUses; with string content it should return []
+      // runTurnStreamNone will call lastToolUses; with string content it should return []
       const model = makeModel({
         call: vi.fn().mockResolvedValue({ stopReason: "end_turn", messages: [] }),
       });
