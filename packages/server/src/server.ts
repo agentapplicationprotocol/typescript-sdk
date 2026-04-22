@@ -53,8 +53,8 @@ export interface Handler<T extends ToSessionInfo = Session> {
     req: PostSessionTurnRequest,
     onEvent: (event: MessageSSEEvent) => void,
   ): Promise<void>;
-  /** Deletes a session for `DELETE /sessions/:id`. */
-  deleteSession(sessionId: string): Promise<void>;
+  /** Deletes a session for `DELETE /sessions/:id`. Return `false` if the session was not found — the router will respond with 404. */
+  deleteSession(sessionId: string): Promise<boolean>;
 }
 
 /**
@@ -158,7 +158,8 @@ export function aap<T extends ToSessionInfo>(handler: Handler<T>): Hono {
   });
 
   router.delete("/sessions/:id", async (c) => {
-    await handler.deleteSession(c.req.param("id"));
+    const found = await handler.deleteSession(c.req.param("id"));
+    if (!found) return c.json({ error: "Session not found" }, 404);
     return new Response(null, { status: 204 });
   });
 

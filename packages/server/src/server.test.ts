@@ -50,7 +50,7 @@ function makeHandler(overrides: Partial<Handler<typeof session>> = {}): Handler<
     postSessionTurnStreamMessage: vi
       .fn()
       .mockImplementation((_session, _req, onEvent) => makeSseHandler()(onEvent)),
-    deleteSession: vi.fn().mockResolvedValue(undefined),
+    deleteSession: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }

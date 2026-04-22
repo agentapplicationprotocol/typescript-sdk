@@ -123,7 +123,7 @@ const handler: Handler<TruncatedHistorySession> = {
   },
 
   async deleteSession(sessionId: string) {
-    sessions.delete(sessionId);
+    return sessions.delete(sessionId);
   },
 };
 

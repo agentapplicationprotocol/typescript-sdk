@@ -119,7 +119,7 @@ const handler: Handler = {
   },
 
   async deleteSession(sessionId: string) {
-    sessions.delete(sessionId);
+    return sessions.delete(sessionId);
   },
 };
 

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **server**: `Session.runTurnNone`, `runTurnDelta`, `runTurnMessage` renamed to `runTurnStreamNone`, `runTurnStreamDelta`, `runTurnStreamMessage`
 - **server**: `Handler` is now generic `Handler<T extends ToSessionInfo = Session>` — `getSession` returns `T | undefined`, and `postSessionTurnStreamX` methods receive `T` instead of `sessionId`; the router resolves the session via `getSession` and returns 404 automatically
+- **server**: `Handler.deleteSession` now returns `Promise<boolean>` — return `false` to signal not found; the router responds with 404
 - **server**: `Agent` no longer enables any capabilities by default; use the new `.stream()` and `.application()` builder methods to opt in explicitly
 - **core**: `PostSessionTurnResponse.messages` narrowed from `HistoryMessage[]` to `AgentMessage[]`
 - **core**: `PostSessionTurnRequest.messages` narrowed from `(UserMessage | ToolMessage | ToolPermissionMessage)[]` to `ApplicationMessage[]`
