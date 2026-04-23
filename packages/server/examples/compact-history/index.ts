@@ -2,9 +2,9 @@ import { serve } from "@hono/node-server";
 import { z } from "zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { aap } from "../../server.js";
-import { Agent } from "../../agent.js";
-import { AiModelProvider } from "../../model.js";
+import { aap } from "../../src/server.js";
+import { Agent } from "../../src/agent.js";
+import { AiModelProvider } from "../../src/model.js";
 import { createOpenAI } from "@ai-sdk/openai";
 import { TruncatedSession, sessions } from "./session.js";
 import type {
@@ -13,7 +13,7 @@ import type {
   HistoryType,
   PostSessionTurnRequest,
 } from "@agentapplicationprotocol/core";
-import type { Handler } from "../../server.js";
+import type { Handler } from "../../src/server.js";
 
 /** Agent definition with options, capabilities, and tools. */
 const agent = new Agent("compact-history-agent", {

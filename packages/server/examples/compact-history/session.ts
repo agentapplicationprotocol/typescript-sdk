@@ -5,7 +5,7 @@ import type {
   MessageSSEEvent,
   StopReason,
 } from "@agentapplicationprotocol/core";
-import { Session, StepIncomingMessage } from "../../session.js";
+import { Session, StepIncomingMessage } from "../../src/session.js";
 
 /** In-memory session store. */
 export const sessions = new Map<string, TruncatedSession>();

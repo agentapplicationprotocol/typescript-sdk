@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { Session } from "./session";
+import { Session } from "../src/session";
 import type { PostSessionTurnRequest } from "@agentapplicationprotocol/core";
-import { Agent } from "./agent";
-import { ModelProvider } from "./model";
+import { Agent } from "../src/agent";
+import { ModelProvider } from "../src/model";
 import type {
   AgentConfig,
   PostSessionTurnResponse,

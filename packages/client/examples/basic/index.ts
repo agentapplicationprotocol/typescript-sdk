@@ -1,6 +1,6 @@
 import * as readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { Client, Session } from "../../index.js";
+import { Client, Session } from "../../src/index.js";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3010";
 const API_KEY = process.env.API_KEY ?? "";

@@ -22,11 +22,7 @@
   },
   "files": [
     "src",
-    "!src/examples",
-    "!src/**/*.test.*",
-    "dist/src",
-    "!dist/src/examples",
-    "!dist/src/**/*.test.*"
+    "dist/src"
   ],
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -34,8 +30,8 @@
     "build": "tsc",
     "test": "vitest run",
     "dev": "tsc --watch",
-    "example:basic": "tsx src/examples/basic/index.ts",
-    "example:cli": "tsx src/examples/cli/index.ts"
+    "example:basic": "tsx examples/basic/index.ts",
+    "example:cli": "tsx examples/cli/index.ts"
   },
   "dependencies": {
     "@agentapplicationprotocol/core": "workspace:*",

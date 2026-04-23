@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { sseEventsToMessages, sseEventsToMessagesAsync } from "./utils";
-import type { SSEEvent } from "./types";
+import { sseEventsToMessages, sseEventsToMessagesAsync } from "../src/utils";
+import type { SSEEvent } from "../src/types";
 
 describe("sseEventsToMessages", () => {
   it("converts text event to assistant message", () => {

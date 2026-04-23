@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Agent } from "./agent";
+import { Agent } from "../src/agent";
 import z from "zod";
 
 describe("Agent", () => {

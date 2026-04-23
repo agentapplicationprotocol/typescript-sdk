@@ -107,5 +107,5 @@ if (pending.client.length > 0 || pending.server.length > 0) {
 
 ## Examples
 
-- [Basic example](./src/examples/basic) — sends a few prompts without streaming
-- [CLI example](./src/examples/cli) — interactive terminal chat client
+- [Basic example](./examples/basic) — sends a few prompts without streaming
+- [CLI example](./examples/cli) — interactive terminal chat client

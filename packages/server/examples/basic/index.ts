@@ -2,9 +2,9 @@ import { serve } from "@hono/node-server";
 import { z } from "zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { aap } from "../../server.js";
-import { Agent } from "../../agent.js";
-import { AiModelProvider } from "../../model.js";
+import { aap } from "../../src/server.js";
+import { Agent } from "../../src/agent.js";
+import { AiModelProvider } from "../../src/model.js";
 import { createOpenAI } from "@ai-sdk/openai";
 import type {
   PostSessionsRequest,
@@ -12,8 +12,8 @@ import type {
   HistoryType,
   PostSessionTurnRequest,
 } from "@agentapplicationprotocol/core";
-import type { Handler } from "../../server.js";
-import { Session } from "../../session.js";
+import type { Handler } from "../../src/server.js";
+import { Session } from "../../src/session.js";
 
 /** In-memory session store. */
 const sessions = new Map<string, Session>();

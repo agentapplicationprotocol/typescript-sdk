@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Client, ClientError } from "./client";
+import { Client, ClientError } from "../src/client";
 import type {
   PostSessionTurnResponse,
   PostSessionsResponse,

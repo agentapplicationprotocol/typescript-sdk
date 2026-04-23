@@ -60,5 +60,5 @@ serve({ fetch: app.fetch, port: 3000 });
 
 ## Examples
 
-- [Basic agent](./src/examples/basic)
-- [Compact history agent](./src/examples/compact-history)
+- [Basic agent](./examples/basic)
+- [Compact history agent](./examples/compact-history)

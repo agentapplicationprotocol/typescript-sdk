@@ -16,9 +16,9 @@
 
 import * as readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { Client } from "../../client.js";
-import { Session } from "../../session.js";
-import type { PendingToolUse } from "../../utils.js";
+import { Client } from "../../src/client.js";
+import { Session } from "../../src/session.js";
+import type { PendingToolUse } from "../../src/utils.js";
 import { ToolRegistry } from "@agentapplicationprotocol/core";
 import type { AgentInfo, ContentBlock, SSEEvent, StreamMode } from "@agentapplicationprotocol/core";
 import z from "zod";

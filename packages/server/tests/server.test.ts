@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
 import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
-import { aap } from "./server";
-import type { Handler, ToSessionInfo } from "./server";
+import { aap } from "../src/server";
+import type { Handler, ToSessionInfo } from "../src/server";
 import type {
   PostSessionTurnResponse,
   HistoryMessage,

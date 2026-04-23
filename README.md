@@ -23,7 +23,7 @@ npm install @agentapplicationprotocol/sdk
 ## Examples
 
 - [Web playground](https://agentapplicationprotocol.github.io/playground/)
-- [Server examples](./packages/server/src/examples)
-- [Client examples](./packages/client/src/examples)
+- [Server examples](./packages/server/examples)
+- [Client examples](./packages/client/examples)
 
 ## [CHANGELOG](./CHANGELOG.md)

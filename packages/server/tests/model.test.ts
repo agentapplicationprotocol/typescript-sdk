@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { ModelProvider, AiModelProvider, fromAiMessages } from "./model";
+import { ModelProvider, AiModelProvider, fromAiMessages } from "../src/model";
 import type { HistoryMessage, DeltaSSEEvent } from "@agentapplicationprotocol/core";
 import type { LanguageModel, ModelMessage } from "ai";
 

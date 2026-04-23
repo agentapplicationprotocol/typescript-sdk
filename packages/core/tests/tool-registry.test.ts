@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import z from "zod";
-import { ToolRegistry } from "./tool-registry";
+import { ToolRegistry } from "../src/tool-registry";
 
 describe("ToolRegistry", () => {
   it("registers a tool and exposes it in tools", () => {

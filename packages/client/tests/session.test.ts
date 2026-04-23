@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Client } from "./client";
-import { Session } from "./session";
+import { Client } from "../src/client";
+import { Session } from "../src/session";
 import type {
   AgentInfo,
   PostSessionTurnResponse,

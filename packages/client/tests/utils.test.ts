@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolvePendingToolUse } from "./utils";
+import { resolvePendingToolUse } from "../src/utils";
 import type { HistoryMessage, ToolSpec } from "@agentapplicationprotocol/core";
 
 describe("resolvePendingToolUse", () => {
