@@ -248,13 +248,13 @@ async function resolvePending(session: Session, pending: PendingToolUse): Promis
       });
     }
 
-    pending = await session.send(
+    ({ pending } = await session.send(
       {
         messages: [...messages, ...permissions],
         stream: streamMode === "none" ? undefined : streamMode,
       },
       sseCallback,
-    );
+    ));
     printLastAssistant(session);
   }
 }
@@ -321,7 +321,7 @@ async function main() {
     },
     agentInfo,
   );
-  const pending = await session.send(
+  const { pending } = await session.send(
     {
       messages: [{ role: "user", content: firstInput }],
       stream: streamMode === "none" ? undefined : streamMode,
@@ -339,7 +339,7 @@ async function main() {
       continue;
     }
 
-    const turnPending = await session.send(
+    const { pending: turnPending } = await session.send(
       {
         agent: {
           tools: getServerTools(agentInfo),

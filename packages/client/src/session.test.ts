@@ -150,7 +150,7 @@ describe("Session.send", () => {
       messages: [{ role: "assistant", content: "reply" }],
     };
     vi.stubGlobal("fetch", mockFetch(turnRes));
-    const pending = await session.send({ messages: [{ role: "user", content: "next" }] });
+    const { pending } = await session.send({ messages: [{ role: "user", content: "next" }] });
     expect(session.history).toHaveLength(2);
     expect(pending).toEqual({ client: [], server: [] });
   });

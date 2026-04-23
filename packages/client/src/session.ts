@@ -92,10 +92,14 @@ export class Session {
    * Sends a turn to the server and appends the result to history.
    * Strips `tools` and `agent` fields that are unchanged from the current session state.
    * Updates `tools` if `req.tools` is provided.
+   * After this call, `req.messages` and the newly generated messages are already pushed to `history`.
    * @param cb - Optional callback invoked for each SSE event in streaming mode.
-   * @returns Any pending tool calls from this turn.
+   * @returns The newly generated messages and any pending tool calls from this turn.
    */
-  async send(req: PostSessionTurnRequest, cb?: (e: SSEEvent) => void): Promise<PendingToolUse> {
+  async send(
+    req: PostSessionTurnRequest,
+    cb?: (e: SSEEvent) => void,
+  ): Promise<{ generated: HistoryMessage[]; pending: PendingToolUse }> {
     // Strip unchanged tools (compare by JSON equality)
     const toolsChanged =
       req.tools !== undefined && JSON.stringify(req.tools) !== JSON.stringify(this.tools);
@@ -156,6 +160,6 @@ export class Session {
     }
 
     this.history.push(...(req.messages as HistoryMessage[]), ...newMessages);
-    return resolvePendingToolUse(this.history, this.tools);
+    return { generated: newMessages, pending: resolvePendingToolUse(this.history, this.tools) };
   }
 }
