@@ -21,9 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **core**: New `AgentCapabilities` interface extracted from `AgentInfo.capabilities`
 - **server**: `Agent.stream()` and `Agent.application()` builder methods to declare stream modes and application input capabilities
 - **server**: `Session.runStepStreamNone`, `Session.runStepStreamDelta`, `Session.runStepStreamMessage` — protected step methods that can be overridden to customize per-step behavior (history compaction, auditing, filtering)
-
-### Added
-
 - **core**: New `ToolRegistry` class — stores tool specs and typed zod executors, with `register`, `tools`, and `exec(ToolCall): Promise<ToolMessage>` methods; errors are returned as `ToolMessage` content rather than thrown
 
 ### Changed
