@@ -19,7 +19,9 @@ import { stdin, stdout } from "node:process";
 import { Client } from "../../client.js";
 import { Session } from "../../session.js";
 import type { PendingToolUse } from "../../utils.js";
-import type { AgentInfo, SSEEvent, StreamMode, ToolSpec } from "@agentapplicationprotocol/core";
+import { ToolRegistry } from "@agentapplicationprotocol/core";
+import type { AgentInfo, ContentBlock, SSEEvent, StreamMode } from "@agentapplicationprotocol/core";
+import z from "zod";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3010";
 const API_KEY = process.env.API_KEY ?? "";
@@ -27,33 +29,22 @@ const client = new Client({ baseUrl: BASE_URL, apiKey: API_KEY });
 
 // --- built-in client tools ---
 
-const CLIENT_TOOLS: Record<string, { spec: ToolSpec; exec: (input: unknown) => unknown }> = {
-  calculate: {
-    spec: {
-      name: "calculate",
-      description: "Evaluate a mathematical expression",
-      parameters: {
-        type: "object",
-        properties: {
-          expression: {
-            type: "string",
-            description: "Math expression to evaluate",
-          },
-        },
-        required: ["expression"],
-      },
-    },
-    exec: (input: unknown) => {
-      const { expression } = input as { expression: string };
-      try {
-        if (!/^[\d\s+\-*/().%^]+$/.test(expression)) return "Error: invalid expression";
-        return Function(`"use strict"; return (${expression})`)();
-      } catch {
-        return "Error: could not evaluate expression";
-      }
-    },
+const clientRegistry = new ToolRegistry();
+clientRegistry.register(
+  "calculate",
+  {
+    description: "Evaluate a mathematical expression",
+    inputSchema: z.object({ expression: z.string().describe("Math expression to evaluate") }),
   },
-};
+  async ({ expression }) => {
+    if (!/^[\d\s+\-*/().%^]+$/.test(expression)) return "Error: invalid expression";
+    try {
+      return String(Function(`"use strict"; return (${expression})`)());
+    } catch {
+      return "Error: could not evaluate expression";
+    }
+  },
+);
 
 // --- state ---
 let streamMode: StreamMode = "delta";
@@ -77,7 +68,7 @@ function printHelp(agent: AgentInfo) {
       "Options:",
       agent.options.map((o) => `${o.name} (default: ${o.default})`).join(", "),
     );
-  console.log("Client tools:", Object.keys(CLIENT_TOOLS).join(", "));
+  console.log("Client tools:", clientRegistry.tools.map((t) => t.name).join(", "));
 }
 
 function handleCommand(line: string, agent: AgentInfo): boolean {
@@ -196,19 +187,10 @@ async function confirm(prompt: string): Promise<boolean> {
 /** Resolve pending tool calls, prompting for untrusted ones, looping until none remain. */
 async function resolvePending(session: Session, pending: PendingToolUse): Promise<void> {
   while (pending.client.length > 0 || pending.server.length > 0) {
-    const messages: { role: "tool"; toolCallId: string; content: string }[] = [];
+    const messages: { role: "tool"; toolCallId: string; content: string | ContentBlock[] }[] = [];
 
     // client tools
     for (const t of pending.client) {
-      const tool = CLIENT_TOOLS[t.name];
-      if (!tool) {
-        messages.push({
-          role: "tool",
-          toolCallId: t.toolCallId,
-          content: `Unknown tool: ${t.name}`,
-        });
-        continue;
-      }
       if (
         !trustedTools.has(t.name) &&
         !(await confirm(`Allow ${t.name}(${JSON.stringify(t.input)})? [y/N] `))
@@ -220,13 +202,9 @@ async function resolvePending(session: Session, pending: PendingToolUse): Promis
         });
         continue;
       }
-      const result = String(tool.exec(t.input));
-      console.log(`[${t.name} → ${result}]`);
-      messages.push({
-        role: "tool",
-        toolCallId: t.toolCallId,
-        content: result,
-      });
+      const result = await clientRegistry.exec(t);
+      console.log(`[${t.name} → ${result.content}]`);
+      messages.push(result);
     }
 
     // untrusted server tools — prompt for permission
@@ -266,9 +244,7 @@ function getServerTools(agentInfo: AgentInfo) {
 }
 
 function getClientTools() {
-  return Object.values(CLIENT_TOOLS)
-    .filter((t) => enabledTools.has(t.spec.name))
-    .map((t) => t.spec);
+  return clientRegistry.tools.filter((t) => enabledTools.has(t.name));
 }
 
 async function main() {
@@ -287,11 +263,11 @@ async function main() {
 
   // enable all server and client tools by default
   agentInfo.tools?.forEach((t) => enabledTools.add(t.name));
-  Object.keys(CLIENT_TOOLS).forEach((name) => enabledTools.add(name));
+  clientRegistry.tools.forEach((t) => enabledTools.add(t.name));
 
   if (agentInfo.tools?.length)
     console.log(`Server tools: ${agentInfo.tools.map((t) => t.name).join(", ")}`);
-  console.log(`Client tools: ${Object.keys(CLIENT_TOOLS).join(", ")}`);
+  console.log(`Client tools: ${clientRegistry.tools.map((t) => t.name).join(", ")}`);
   if (agentInfo.options?.length)
     console.log(`Options: ${agentInfo.options.map((o) => `${o.name}=${o.default}`).join(", ")}`);
   console.log("Type /help for commands.\n");
