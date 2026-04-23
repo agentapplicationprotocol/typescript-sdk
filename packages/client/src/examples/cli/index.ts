@@ -18,7 +18,7 @@ import * as readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { Client } from "../../client.js";
 import { Session } from "../../session.js";
-import type { PendingToolUse } from "../../session.js";
+import type { PendingToolUse } from "../../utils.js";
 import type { AgentInfo, SSEEvent, StreamMode, ToolSpec } from "@agentapplicationprotocol/core";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3010";

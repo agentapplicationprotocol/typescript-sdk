@@ -8,19 +8,10 @@ import {
   PostSessionTurnRequest,
   sseEventsToMessages,
   SSEEvent,
-  ToolCall,
   ToolSpec,
 } from "@agentapplicationprotocol/core";
 import { Client } from "./client";
-import { resolvePendingToolUse } from "./utils";
-
-/** Unresolved tool calls from a turn, split by origin. */
-export interface PendingToolUse {
-  /** Client-side tools — execute locally and send results back via `tool` messages. */
-  client: ToolCall[];
-  /** Server-side tools — send `tool_permission` messages to grant or deny. */
-  server: ToolCall[];
-}
+import { resolvePendingToolUse, PendingToolUse } from "./utils";
 
 /** A stateful client-side session that accumulates history across turns. */
 export class Session {
