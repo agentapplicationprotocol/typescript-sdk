@@ -1,6 +1,7 @@
 # @agentapplicationprotocol/server
 
 [![npm version](https://img.shields.io/npm/v/@agentapplicationprotocol/server)](https://www.npmjs.com/package/@agentapplicationprotocol/server)
+[![jsdocs.io](https://img.shields.io/badge/jsdocs.io-reference-blue)](https://www.jsdocs.io/package/@agentapplicationprotocol/server)
 
 AAP server for the [Agent Application Protocol (AAP)](https://github.com/agentapplicationprotocol/agent-application-protocol).
 

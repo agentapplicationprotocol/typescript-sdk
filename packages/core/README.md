@@ -1,6 +1,7 @@
 # @agentapplicationprotocol/core
 
 [![npm version](https://img.shields.io/npm/v/@agentapplicationprotocol/core)](https://www.npmjs.com/package/@agentapplicationprotocol/core)
+[![jsdocs.io](https://img.shields.io/badge/jsdocs.io-reference-blue)](https://www.jsdocs.io/package/@agentapplicationprotocol/core)
 
 Shared types and utilities for the [Agent Application Protocol (AAP)](https://github.com/agentapplicationprotocol/agent-application-protocol).
 
