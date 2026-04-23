@@ -88,7 +88,7 @@ export class Session {
     const session = new Session(res.sessionId, client, agentInfo, res.agent, res.tools ?? [], []);
     if (history) {
       const histRes = await client.getSessionHistory(res.sessionId, history);
-      const h = history === "compacted" ? histRes.history.compacted : histRes.history.full;
+      const h = history === "compacted" ? histRes?.history.compacted : histRes?.history.full;
       session.history.push(...(h ?? []));
     }
     return {
@@ -151,7 +151,7 @@ export class Session {
         cleanReq as PostSessionTurnRequest & { stream: "delta" | "message" },
       );
       const events: SSEEvent[] = [];
-      for await (const e of stream) {
+      for await (const e of stream ?? []) {
         events.push(e);
         cb?.(e);
       }

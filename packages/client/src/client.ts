@@ -42,16 +42,34 @@ export class Client {
     };
   }
 
-  private url(path: string): string {
-    return `${this.baseUrl}${path}`;
+  private fetch(
+    method: string,
+    path: string,
+    opts?: { body?: unknown; headers?: Record<string, string> },
+  ) {
+    return fetch(`${this.baseUrl}${path}`, {
+      method,
+      headers: { ...this.headers, ...opts?.headers },
+      body: opts?.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    });
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const res = await fetch(this.url(path), {
-      method,
-      headers: this.headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    const res = await this.fetch(method, path, { body });
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new ClientError(method, path, res.status, text);
+    }
+    return res.json() as Promise<T>;
+  }
+
+  private async request404<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T | undefined> {
+    const res = await this.fetch(method, path, { body });
+    if (res.status === 404) return undefined;
     if (!res.ok) {
       const text = await res.text().catch(() => res.statusText);
       throw new ClientError(method, path, res.status, text);
@@ -64,12 +82,9 @@ export class Client {
     method: string,
     path: string,
     body: unknown,
-  ): Promise<AsyncIterable<SSEEvent>> {
-    const res = await fetch(this.url(path), {
-      method,
-      headers: { ...this.headers, Accept: "text/event-stream" },
-      body: JSON.stringify(body),
-    });
+  ): Promise<AsyncIterable<SSEEvent> | undefined> {
+    const res = await this.fetch(method, path, { body, headers: { Accept: "text/event-stream" } });
+    if (res.status === 404) return undefined;
     if (!res.ok || !res.body) {
       const text = await res.text().catch(() => res.statusText);
       throw new ClientError(method, path, res.status, text);
@@ -98,13 +113,16 @@ export class Client {
   }
 
   /** GET /sessions/:id */
-  getSession(sessionId: string): Promise<SessionInfo> {
-    return this.request("GET", `/sessions/${sessionId}`);
+  getSession(sessionId: string): Promise<SessionInfo | undefined> {
+    return this.request404("GET", `/sessions/${sessionId}`);
   }
 
   /** GET /sessions/:id/history */
-  getSessionHistory(sessionId: string, type: HistoryType): Promise<GetSessionHistoryResponse> {
-    return this.request(
+  getSessionHistory(
+    sessionId: string,
+    type: HistoryType,
+  ): Promise<GetSessionHistoryResponse | undefined> {
+    return this.request404(
       "GET",
       `/sessions/${sessionId}/history?${new URLSearchParams({ type }).toString()}`,
     );
@@ -119,25 +137,25 @@ export class Client {
   postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest & { stream?: "none" },
-  ): Promise<PostSessionTurnResponse>;
+  ): Promise<PostSessionTurnResponse | undefined>;
   /** POST /sessions/:id/turns — SSE streaming */
   postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest & { stream: "delta" | "message" },
-  ): Promise<AsyncIterable<SSEEvent>>;
+  ): Promise<AsyncIterable<SSEEvent> | undefined>;
   postSessionTurn(
     sessionId: string,
     req: PostSessionTurnRequest,
-  ): Promise<PostSessionTurnResponse | AsyncIterable<SSEEvent>> {
+  ): Promise<PostSessionTurnResponse | AsyncIterable<SSEEvent> | undefined> {
     if (req.stream === "delta" || req.stream === "message") {
       return this.streamRequest("POST", `/sessions/${sessionId}/turns`, req);
     }
-    return this.request("POST", `/sessions/${sessionId}/turns`, req);
+    return this.request404("POST", `/sessions/${sessionId}/turns`, req);
   }
 
   /** DELETE /sessions/:id */
   deleteSession(sessionId: string): Promise<void> {
-    return this.request("DELETE", `/sessions/${sessionId}`);
+    return this.request404("DELETE", `/sessions/${sessionId}`);
   }
 }
 

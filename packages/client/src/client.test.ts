@@ -140,7 +140,7 @@ describe("Client", () => {
       stream: "message",
     });
     const received: SSEEvent[] = [];
-    for await (const e of stream) received.push(e);
+    for await (const e of stream!) received.push(e);
     expect(received).toEqual(events);
   });
 
@@ -177,11 +177,11 @@ describe("Client", () => {
       "fetch",
       vi
         .fn()
-        .mockResolvedValue({ ok: false, status: 404, text: () => Promise.resolve("Not Found") }),
+        .mockResolvedValue({ ok: false, status: 500, text: () => Promise.resolve("Server Error") }),
     );
     const err = await client.getSession("x").catch((e) => e);
     expect(err).toBeInstanceOf(ClientError);
-    expect(err.status).toBe(404);
+    expect(err.status).toBe(500);
     expect(err.method).toBe("GET");
     expect(err.path).toBe("/sessions/x");
   });

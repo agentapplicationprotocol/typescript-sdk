@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **client**: `getSession`, `getSessionHistory`, `deleteSession`, and `postSessionTurn` now return `undefined` instead of throwing on 404
 - **server**: `Session.runTurnNone`, `runTurnDelta`, `runTurnMessage` renamed to `runTurnStreamNone`, `runTurnStreamDelta`, `runTurnStreamMessage`
 - **server**: `Handler` is now generic `Handler<T extends ToSessionInfo = Session>` — `getSession` returns `T | undefined`, and `postSessionTurnStreamX` methods receive `T` instead of `sessionId`; the router resolves the session via `getSession` and returns 404 automatically
 - **server**: `Handler.deleteSession` now returns `Promise<boolean>` — return `false` to signal not found; the router responds with 404
