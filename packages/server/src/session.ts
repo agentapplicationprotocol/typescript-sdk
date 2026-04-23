@@ -98,11 +98,18 @@ export class Session {
         }
       }
       // execute the tool if granted, otherwise produce a denial message
-      const content =
-        m.granted && this.agent.tools.has(toolName)
-          ? await this.agent.tools.get(toolName)!(toolInput)
-          : `Tool use denied${m.reason ? `: ${m.reason}` : ""}`;
-      resolved.push({ role: "tool", toolCallId: m.toolCallId, content });
+      const toolMsg = m.granted
+        ? await this.agent.registry.exec({
+            toolCallId: m.toolCallId,
+            name: toolName,
+            input: JSON.parse(toolInput),
+          })
+        : {
+            role: "tool" as const,
+            toolCallId: m.toolCallId,
+            content: `Tool use denied${m.reason ? `: ${m.reason}` : ""}`,
+          };
+      resolved.push(toolMsg);
     }
     return resolved;
   }
@@ -180,10 +187,17 @@ export class Session {
 
       // execute trusted tools inline and emit tool_result events as they complete
       for (const b of toolUses.filter((b) => trusted.has(b.name))) {
-        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
-        const toolMsg: ToolMessage = { role: "tool", toolCallId: b.toolCallId, content };
+        const toolMsg = await this.agent.registry.exec({
+          toolCallId: b.toolCallId,
+          name: b.name,
+          input: b.input,
+        });
         generated.push(toolMsg);
-        onEvent({ event: "tool_result" as const, toolCallId: b.toolCallId, content });
+        onEvent({
+          event: "tool_result" as const,
+          toolCallId: b.toolCallId,
+          content: toolMsg.content,
+        });
       }
 
       // stop only if there are untrusted tools requiring client permission
@@ -289,10 +303,17 @@ export class Session {
 
       // execute trusted tools inline and emit tool_result events as they complete
       for (const b of toolUses.filter((b) => trusted.has(b.name))) {
-        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
-        const toolMsg: ToolMessage = { role: "tool", toolCallId: b.toolCallId, content };
+        const toolMsg = await this.agent.registry.exec({
+          toolCallId: b.toolCallId,
+          name: b.name,
+          input: b.input,
+        });
         generated.push(toolMsg);
-        onEvent({ event: "tool_result" as const, toolCallId: b.toolCallId, content });
+        onEvent({
+          event: "tool_result" as const,
+          toolCallId: b.toolCallId,
+          content: toolMsg.content,
+        });
       }
 
       // stop only if there are untrusted tools requiring client permission
@@ -375,8 +396,13 @@ export class Session {
       // execute trusted tools inline and append their results to generated
       const hasUntrusted = toolUses.some((b) => !trusted.has(b.name));
       for (const b of toolUses.filter((b) => trusted.has(b.name))) {
-        const content = await this.agent.tools.get(b.name)!(JSON.stringify(b.input));
-        generated.push({ role: "tool", toolCallId: b.toolCallId, content });
+        generated.push(
+          await this.agent.registry.exec({
+            toolCallId: b.toolCallId,
+            name: b.name,
+            input: b.input,
+          }),
+        );
       }
       // stop only if there are untrusted tools requiring client permission
       stopReason = hasUntrusted ? res.stopReason : undefined;

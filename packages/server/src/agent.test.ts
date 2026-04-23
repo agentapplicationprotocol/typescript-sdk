@@ -8,7 +8,7 @@ describe("Agent", () => {
     expect(agent.info.name).toBe("my-agent");
     expect(agent.info.version).toBe("1.0.0");
     expect(agent.info.tools).toEqual([]);
-    expect(agent.tools.size).toBe(0);
+    expect(agent.registry.tools.length).toBe(0);
   });
 
   it("accepts title, description, version options", () => {
@@ -73,10 +73,13 @@ describe("Agent", () => {
 
     expect(agent.info.tools).toHaveLength(1);
     expect(agent.info.tools![0].name).toBe("add");
-    expect(agent.tools.has("add")).toBe(true);
 
-    const result = await agent.tools.get("add")!(JSON.stringify({ a: 2, b: 3 }));
-    expect(JSON.parse(result)).toBe(5);
+    const result = await agent.registry.exec({
+      toolCallId: "1",
+      name: "add",
+      input: { a: 2, b: 3 },
+    });
+    expect(JSON.parse(result.content as string)).toBe(5);
   });
 
   it("tool() excludes $schema from parameters", () => {
@@ -92,7 +95,11 @@ describe("Agent", () => {
       { inputSchema: z.object({ name: z.string() }), outputSchema: z.string() },
       async ({ name }) => `hello ${name}`,
     );
-    const result = await agent.tools.get("greet")!(JSON.stringify({ name: "world" }));
-    expect(JSON.parse(result)).toBe("hello world");
+    const result = await agent.registry.exec({
+      toolCallId: "1",
+      name: "greet",
+      input: { name: "world" },
+    });
+    expect(JSON.parse(result.content as string)).toBe("hello world");
   });
 });

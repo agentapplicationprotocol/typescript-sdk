@@ -2,59 +2,62 @@ import {
   AgentCapabilities,
   AgentInfo,
   AgentOption,
-  JSONSchema,
+  ToolRegistry,
 } from "@agentapplicationprotocol/core";
 import z from "zod";
 
 /** Defines an AAP agent: its metadata, capabilities, options, and tools. Use the fluent builder methods to configure, then pass to `Session`. */
 export class Agent {
-  info: AgentInfo;
-  /** Registered tool executors keyed by tool name. Values accept raw JSON string input and return raw JSON string output. */
-  tools: Map<string, (input: string) => Promise<string>> = new Map();
+  private _info: Omit<AgentInfo, "tools">;
+  readonly registry: ToolRegistry = new ToolRegistry();
 
   constructor(name: string, options?: { title?: string; description?: string; version?: string }) {
-    this.info = {
+    this._info = {
       name,
       title: options?.title,
       description: options?.description,
       version: options?.version ?? "1.0.0",
-      tools: [],
       options: [],
     };
   }
 
+  /** Returns the full AgentInfo, deriving tools from the registry. */
+  get info(): AgentInfo {
+    return { ...this._info, tools: this.registry.tools };
+  }
+
   /** Declares a configurable agent option (text, secret, or select). */
   option(opt: AgentOption): Agent {
-    this.info.options ??= [];
-    this.info.options.push(opt);
+    this._info.options ??= [];
+    this._info.options.push(opt);
     return this;
   }
 
   /** Declares supported stream modes. */
   stream(modes: AgentCapabilities["stream"]): Agent {
-    this.info.capabilities ??= {};
-    this.info.capabilities.stream = modes;
+    this._info.capabilities ??= {};
+    this._info.capabilities.stream = modes;
     return this;
   }
 
   /** Declares application-provided input capabilities (e.g. client-side tools). */
   application(application: AgentCapabilities["application"]): Agent {
-    this.info.capabilities ??= {};
-    this.info.capabilities.application = application;
+    this._info.capabilities ??= {};
+    this._info.capabilities.application = application;
     return this;
   }
 
   /** Declares image input capability. */
   image(image: AgentCapabilities["image"]): Agent {
-    this.info.capabilities ??= {};
-    this.info.capabilities.image = image;
+    this._info.capabilities ??= {};
+    this._info.capabilities.image = image;
     return this;
   }
 
   /** Declares history retrieval capability. */
   history(history: AgentCapabilities["history"]): Agent {
-    this.info.capabilities ??= {};
-    this.info.capabilities.history = history;
+    this._info.capabilities ??= {};
+    this._info.capabilities.history = history;
     return this;
   }
 
@@ -73,19 +76,7 @@ export class Agent {
     },
     exec: (input: I) => Promise<O>,
   ): Agent {
-    this.info.tools ??= [];
-    this.info.tools.push({
-      name,
-      title: options.title,
-      description: options.description ?? "",
-      parameters: (({ $schema, ...rest }) => rest)(
-        z.toJSONSchema(options.inputSchema),
-      ) as JSONSchema,
-    });
-    this.tools.set(name, async (input: string) => {
-      const output = await exec(options.inputSchema.parse(JSON.parse(input)));
-      return JSON.stringify(options.outputSchema ? options.outputSchema.parse(output) : output);
-    });
+    this.registry.register(name, options, exec);
     return this;
   }
 }

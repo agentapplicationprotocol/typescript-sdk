@@ -22,8 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **server**: `Agent.stream()` and `Agent.application()` builder methods to declare stream modes and application input capabilities
 - **server**: `Session.runStepStreamNone`, `Session.runStepStreamDelta`, `Session.runStepStreamMessage` — protected step methods that can be overridden to customize per-step behavior (history compaction, auditing, filtering)
 
+### Added
+
+- **core**: New `ToolRegistry` class — stores tool specs and typed zod executors, with `register`, `tools`, and `exec(ToolCall): Promise<ToolMessage>` methods; errors are returned as `ToolMessage` content rather than thrown
+
 ### Changed
 
+- **server**: `Agent.tool` now delegates to `Agent.registry` (`ToolRegistry`); `Agent.info` is now a getter that derives `tools` from the registry
 - **client**: `getSession`, `getSessionHistory`, `deleteSession`, and `postSessionTurn` now return `undefined` instead of throwing on 404
 - **client**: `Session.send` now returns `{ generated: HistoryMessage[]; pending: PendingToolUse }` instead of just `PendingToolUse`
 - **client**: `PendingToolUse` moved from `session.ts` to `utils.ts`
